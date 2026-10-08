@@ -1,37 +1,34 @@
 import streamlit as st
 import json
 import re
-import time
+import io
 from PIL import Image
 import pdfplumber
 from supabase import create_client
 from google import genai
 from google.genai import types
 
+# ReportLab libraries for standard PDF generation matching your sample
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, KeepTogether
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+
 # ----------------- 1. Page Configuration -----------------
 st.set_page_config(
-    page_title="RRB AI Master Engine Pro",
+    page_title="RRB AI Engine Pro",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ----------------- 2. IT Standard / Play Store Grade Styling -----------------
+# ----------------- 2. Modern Dark Glassmorphism Styling -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    * { font-family: 'Plus Jakarta Sans', sans-serif !important; }
+    .stApp { background: #09090e !important; color: #F3F4F6 !important; }
     
-    * {
-        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-        letter-spacing: -0.015em;
-    }
-    
-    .stApp {
-        background: #09090e !important;
-        color: #F3F4F6 !important;
-    }
-
-    /* Top Greeting / Header Banner */
     .app-header {
         background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #D946EF 100%);
         border-radius: 24px;
@@ -40,49 +37,14 @@ st.markdown("""
         box-shadow: 0 16px 36px rgba(99, 102, 241, 0.28);
         margin-bottom: 24px;
     }
-
-    /* Glass Cards */
     .modern-card {
         background: rgba(22, 21, 34, 0.75);
         backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 20px;
         padding: 20px 24px;
         margin-bottom: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-        transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .modern-card:hover {
-        border-color: rgba(99, 102, 241, 0.4);
-        transform: translateY(-2px);
-    }
-
-    /* Badges */
-    .badge-primary {
-        background: rgba(99, 102, 241, 0.15);
-        color: #818CF8;
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        padding: 4px 12px;
-        border-radius: 100px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        display: inline-block;
-        margin-right: 8px;
-    }
-
-    .badge-sub {
-        background: rgba(255, 255, 255, 0.06);
-        color: #9CA3AF;
-        padding: 4px 12px;
-        border-radius: 100px;
-        font-size: 11px;
-        font-weight: 500;
-        display: inline-block;
-    }
-
-    /* Modern Buttons */
     .stButton > button {
         background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
         color: #FFFFFF !important;
@@ -90,18 +52,8 @@ st.markdown("""
         border-radius: 14px !important;
         padding: 10px 24px !important;
         font-weight: 600 !important;
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35) !important;
-        transition: all 0.2s ease !important;
     }
-    .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 26px rgba(79, 70, 229, 0.45) !important;
-    }
-
-    [data-testid="stSidebar"] {
-        background: #0f0e17 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-    }
+    [data-testid="stSidebar"] { background: #0f0e17 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,282 +74,253 @@ def get_clients():
 
 supabase, ai_client = get_clients()
 
-# ----------------- 4. Smart Local Classifier (Zero Token Fail-safe) -----------------
-def quick_categorize(text):
-    """Bina API limit break kiye 100% sawalon ko accurately tag karne ke liye rules"""
-    t = text.lower()
+# ----------------- 4. PDF Generation Engine (Exact Layout Match) -----------------
+def generate_sample_style_pdf(subject_title, chapter_title, questions_list):
+    """
+    User ki provided PDF jaisa clean layout banata hai:
+    [Subject]
+    Chapter - Title
+    1. Question text
+       A. ... B. ...
+    Answer Key grid at bottom
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
     
-    math_words = ['प्रतिशत', '%', 'औसत', 'अनुपात', 'ब्याज', 'त्रिभुज', 'क्षेत्रफल', 'चाल', 'ट्रेन', 'संख्या', 'धारा', 'कार्य', 'समय', 'मूल्य', 'लाभ', 'हानि', 'ratio', 'percentage', 'triangle', 'speed', 'distance', 'interest']
-    reasoning_words = ['श्रृंखला', 'शृंखला', 'समानता', 'दिशा', 'रक्त संबंध', 'कथन', 'निष्कर्ष', 'कूट', 'कोडिंग', 'सीटिंग', 'series', 'analogy', 'blood relation', 'coding', 'syllogism']
-    chem_words = ['अम्ल', 'क्षार', 'तत्व', 'आवर्त सारणी', 'परमाणु', 'गैस', 'धातु', 'acid', 'base', 'periodic', 'atom', 'metal']
-    phy_words = ['गति', 'बल', 'ऊर्जा', 'विद्युत', 'प्रकाश', 'तरंग', 'लेंस', 'न्यूटन', 'ओम', 'force', 'energy', 'current', 'optic', 'newton']
-    bio_words = ['कोशिका', 'हृदय', 'रक्त', 'विटामिन', 'रोग', 'पादप', 'हार्मोन', 'cell', 'blood', 'vitamin', 'disease', 'plant']
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=13,
+        leading=16,
+        textColor=colors.black
+    )
+    q_style = ParagraphStyle(
+        'QuestionStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.black,
+        spaceAfter=6
+    )
+    ans_style = ParagraphStyle(
+        'AnswerKeyStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=14,
+        textColor=colors.black
+    )
 
-    for w in math_words:
-        if w in t: return "Maths", "Quantitative Aptitude"
-    for w in reasoning_words:
-        if w in t: return "Reasoning", "General Intelligence"
-    for w in chem_words:
-        if w in t: return "Chemistry", "General Science"
-    for w in phy_words:
-        if w in t: return "Physics", "General Science"
-    for w in bio_words:
-        if w in t: return "Biology", "General Science"
+    story = []
+    story.append(Paragraph(f"[{subject_title}]", title_style))
+    story.append(Paragraph(f"Chapter - {chapter_title}", title_style))
+    story.append(Spacer(1, 14))
 
+    answers_collected = []
+
+    for i, q in enumerate(questions_list, 1):
+        clean_text = q.get('question_text', '').replace('\n', '<br/>')
+        q_p = Paragraph(f"<b>{i}.</b> {clean_text}", q_style)
+        story.append(KeepTogether([q_p, Spacer(1, 4)]))
+        
+        # Answer format collection
+        ans = q.get('correct_option', 'B')
+        answers_collected.append(f"{i}. {ans}")
+
+    # Answer Key grid
+    story.append(Spacer(1, 16))
+    story.append(Paragraph("<b>Answer Key</b>", title_style))
+    story.append(Spacer(1, 6))
+    
+    # 10 answers per line grid format
+    grid_lines = []
+    for k in range(0, len(answers_collected), 10):
+        grid_lines.append(" | ".join(answers_collected[k:k+10]))
+    
+    for line in grid_lines:
+        story.append(Paragraph(line, ans_style))
+        story.append(Spacer(1, 2))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+# ----------------- 5. Smart Fallback Ingestion Rule -----------------
+def quick_categorize(text):
+    t = text.lower()
+    if any(w in t for w in ['plinth', 'carpet', 'estimation', 'costing', 'far', 'fsi', 'area', 'rate', 'tender']):
+        return "Civil Engineering", "Estimation and Costing"
+    if any(w in t for w in ['प्रतिशत', '%', 'औसत', 'अनुपात', 'ब्याज', 'ट्रेन', 'speed', 'ratio']):
+        return "Maths", "Quantitative Aptitude"
+    if any(w in t for w in ['श्रृंखला', 'सीटिंग', 'दिशा', 'coding', 'blood relation']):
+        return "Reasoning", "General Intelligence"
     return "General Studies", "General Knowledge"
 
-# ----------------- 5. Bulletproof PDF Extractor -----------------
 def extract_questions_clean(pdf_file):
     raw_text = ""
     with pdfplumber.open(pdf_file) as pdf:
         for page in pdf.pages:
             t = page.extract_text(layout=False) or ""
-            if t:
-                raw_text += "\n" + t
-
-    # Pattern recognition for Q.1, Q 1, Que.1, Question ID
-    pattern = r"(?:\n|\r|^)(?:Q\s*[\.\:\-]?\s*\d+|Que\s*[\.\:\-]?\s*\d+|प्रश्न\s*[\.\:\-]?\s*\d+|Question ID\s*[:\-]?\s*\d+)[\.\:\s\n]"
+            if t: raw_text += "\n" + t
+    pattern = r"(?:\n|\r|^)(?:Q\s*[\.\:\-]?\s*\d+|Que\s*[\.\:\-]?\s*\d+|\d+\.|\d+\))\s*"
     blocks = re.split(pattern, raw_text, flags=re.IGNORECASE)
-    
-    valid_blocks = [b.strip() for b in blocks if len(b.strip()) > 35]
-    return valid_blocks
+    return [b.strip() for b in blocks if len(b.strip()) > 35]
 
-# ----------------- 6. Navigation Tabs -----------------
+# ----------------- 6. Navigation Hub -----------------
 nav = st.sidebar.radio(
-    "Navigation Hub",
+    "AI Engine Mode",
     [
+        "💬 AI Smart Chat & Fuzzy Assistant",
+        "📄 Generate Clean PYQ PDF",
         "🚀 Cloud PDF Ingestion",
         "🎯 CBT Exam Arena",
-        "🔍 Topic & PYQ Explorer",
-        "📸 Smart Vision Snap",
         "🛡️ Data Manager & Safe Delete"
     ]
 )
 
-# ----------------- TAB 1: CLOUD PDF INGESTION -----------------
-if nav == "🚀 Cloud PDF Ingestion":
+# ----------------- TAB 1: AI SMART CHAT & FUZZY ASSISTANT -----------------
+if nav == "💬 AI Smart Chat & Fuzzy Assistant":
     st.markdown("""
     <div class="app-header">
-        <h2 style="margin: 0; font-weight: 800;">Enterprise Ingestion Pipeline</h2>
-        <p style="margin: 6px 0 0 0; opacity: 0.9;">High-speed rate-limit protected batch loader for RRB/SSC answer keys.</p>
+        <h2 style="margin: 0; font-weight: 800;">AI Conversational Partner</h2>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Aap galat spelling ya bolke bhi puchein, AI khud context samajh kar explain karega aur database se sawal dega.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    up_pdfs = st.file_uploader("Select Answer Key PDFs", type=["pdf"], accept_multiple_files=True)
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
 
-    if up_pdfs:
-        st.write(f"📁 Selected Files: **{len(up_pdfs)}**")
-        
-        if st.button("⚡ Start Safe Cloud Sync", use_container_width=True):
-            total_added = 0
-            progress_bar = st.progress(0)
-            status_box = st.empty()
+    for msg in st.session_state.chat_messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-            for p_idx, pdf_file in enumerate(up_pdfs):
-                shift = pdf_file.name.replace(".pdf", "")
-                status_box.info(f"Parsing: {pdf_file.name}...")
-                
-                questions = extract_questions_clean(pdf_file)
-                st.write(f"🔍 **{pdf_file.name}**: Extracted **{len(questions)}** valid items.")
+    user_prompt = st.chat_input("Mujhse kuch bhi pucho (e.g. 'estimesion ka plinth area samjhao' ya '20 maths question do')...")
 
-                records = []
-                for q_idx, q_txt in enumerate(questions):
-                    subj, top = quick_categorize(q_txt)
-                    records.append({
-                        "question_text": q_txt,
-                        "options": json.dumps([]),
-                        "correct_option": "Marked in Answer Key",
-                        "subject": subj,
-                        "topic": top,
-                        "shift_name": shift
-                    })
+    if user_prompt:
+        st.session_state.chat_messages.append({"role": "user", "content": user_prompt})
+        with st.chat_message("user"):
+            st.markdown(user_prompt)
 
-                # Batch insert (15 items per batch) to prevent network timeouts
-                batch_size = 15
-                for b_i in range(0, len(records), batch_size):
-                    chunk = records[b_i:b_i + batch_size]
-                    try:
-                        supabase.table("rrb_questions").insert(chunk).execute()
-                        total_added += len(chunk)
-                    except Exception as err:
-                        st.error(f"Sync error on chunk {b_i}: {err}")
-                    time.sleep(0.1)
+        with st.chat_message("assistant"):
+            with st.spinner("AI analyzing your intent..."):
+                # Intent & Spelling Correction check
+                interpreter_prompt = f"""
+                User input: "{user_prompt}"
+                User might have spelling mistakes or broken hinglish.
+                1. Identify the core topic/intent.
+                2. If user is asking for questions, output: ACTION: FETCH_QUESTIONS | TOPIC: <topic> | COUNT: <number>
+                3. If user is having a conversation or asking for an explanation, respond naturally, like a helpful mentor in Hinglish.
+                """
+                ai_res = ai_client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=interpreter_prompt
+                )
+                response_text = ai_res.text
 
-                progress_bar.progress((p_idx + 1) / len(up_pdfs))
-
-            status_box.empty()
-            st.balloons()
-            st.success(f"🎉 Success! Safely synchronized {total_added} questions directly into cloud storage!")
-
-# ----------------- TAB 2: CBT EXAM ARENA -----------------
-elif nav == "🎯 CBT Exam Arena":
-    st.markdown("""
-    <div class="app-header">
-        <h2 style="margin: 0; font-weight: 800;">TCS iON CBT Live Simulator</h2>
-        <p style="margin: 6px 0 0 0; opacity: 0.9;">Real exam atmosphere: Live timer, marking scheme (+1 / -0.33) & instant scorecard.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if "cbt_state" not in st.session_state:
-        st.session_state.cbt_state = False
-
-    if not st.session_state.cbt_state:
-        test_sub = st.selectbox("Select Test Subject", ["All", "Maths", "Reasoning", "Physics", "Chemistry", "Biology"])
-        q_num = st.slider("Total Test Questions", 10, 50, 20, 5)
-
-        if st.button("🚀 Launch Official CBT Test", use_container_width=True):
-            query = supabase.table("rrb_questions").select("*")
-            if test_sub != "All":
-                query = query.eq("subject", test_sub)
-            data = query.limit(q_num).execute().data
-            
-            if data:
-                st.session_state.test_questions = data
-                st.session_state.cbt_state = True
-                st.session_state.user_choices = {}
-                st.rerun()
-            else:
-                st.warning("No questions found. Please ingest PDFs first.")
-    else:
-        st.info("⏱️ Test Active | Marking: +1 Correct, -0.33 Negative")
-        for num, item in enumerate(st.session_state.test_questions, 1):
-            st.markdown(f"""
-            <div class="modern-card">
-                <span class="badge-primary">Q.{num}</span>
-                <span class="badge-sub">{item['subject']} • {item['topic']}</span>
-                <div style="margin-top: 14px; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">
-{item['question_text']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            choice = st.radio(f"Mark response for Q.{num}:", ["A", "B", "C", "D", "Skip"], key=f"q_{num}", horizontal=True)
-            st.session_state.user_choices[num] = choice
-
-        if st.button("🏁 Submit Test & View Scorecard", use_container_width=True):
-            st.session_state.cbt_state = False
-            total_attempted = sum(1 for v in st.session_state.user_choices.values() if v != "Skip")
-            st.balloons()
-            st.markdown(f"""
-            <div class="app-header">
-                <h2>🏆 Test Summary</h2>
-                <p>Attempted: <b>{total_attempted}</b> / {len(st.session_state.test_questions)} | Accuracy: <b>85%</b></p>
-            </div>
-            """, unsafe_allow_html=True)
-
-# ----------------- TAB 3: TOPIC & PYQ EXPLORER -----------------
-elif nav == "🔍 Topic & PYQ Explorer":
-    st.markdown("### 🔍 Filter and Generate Custom Question Banks")
-    
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        f_sub = st.selectbox("Subject", ["All", "Maths", "Reasoning", "Physics", "Chemistry", "Biology", "General Studies"])
-        limit_q = st.slider("Limit", 5, 100, 25, 5)
-    with c2:
-        topic_term = st.text_input("Micro Topic Filter (e.g. Percentage, Optics, Cell)", "")
-
-    if st.button("Fetch Filtered Questions", use_container_width=True):
-        with st.spinner("Extracting from cloud..."):
-            query = supabase.table("rrb_questions").select("*")
-            if f_sub != "All":
-                query = query.eq("subject", f_sub)
-            if topic_term.strip():
-                query = query.ilike("topic", f"%{topic_term.strip()}%")
-            
-            results = query.limit(limit_q).execute().data
-            
-            if not results:
-                st.info("No matching records found.")
-            else:
-                st.success(f"Retrieved {len(results)} items!")
-                export_text = ""
-                for idx, row in enumerate(results, 1):
-                    export_text += f"Q{idx}. [{row['subject']} - {row['topic']}]\n{row['question_text']}\n\n{'='*40}\n\n"
-                    
-                    st.markdown(f"""
-                    <div class="modern-card">
-                        <div>
-                            <span class="badge-primary">{row['subject']}</span>
-                            <span class="badge-sub">{row['topic']}</span>
-                            <span style="float: right; color: #6B7280; font-size: 11px;">{row['shift_name']}</span>
-                        </div>
-                        <div style="margin-top: 14px; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">
-{row['question_text']}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    if st.button(f"⚡ Generate AI Shortcut Trick (Q{idx})", key=f"trick_{row['id']}"):
-                        with st.spinner("AI calculating 10-second shortcut..."):
-                            prompt = f"Provide: 1. Core formula 2. 10-Second topper trick in Hinglish for this RRB question:\n{row['question_text']}"
-                            ai_res = ai_client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-                            st.info(ai_res.text)
-
-                st.download_button("📥 Download Clean Practice Sheet (TXT)", export_text, file_name=f"RRB_{f_sub}_PYQ.txt")
-
-# ----------------- TAB 4: SMART VISION SNAP -----------------
-elif nav == "📸 Smart Vision Snap":
-    st.markdown("""
-    <div class="app-header">
-        <h2 style="margin: 0; font-weight: 800;">Visual Semantic Matcher</h2>
-        <p style="margin: 6px 0 0 0; opacity: 0.9;">Take a photo of your handwritten notes to instantly pull all past matching RRB questions.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    img_file = st.file_uploader("Upload Notes Snapshot", type=["jpg", "png", "jpeg"])
-    if img_file:
-        img = Image.open(img_file)
-        c1, c2 = st.columns([1, 2])
-        with c1:
-            st.image(img, use_container_width=True)
-        with c2:
-            if st.button("🔍 Match Exam PYQs", use_container_width=True):
-                with st.spinner("Gemini reading notes concepts..."):
-                    res = ai_client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=[img, "Extract main math/science keywords and topics in 3 comma-separated terms."]
-                    )
-                    detected = res.text.strip()
-                    st.info(f"💡 Detected Topics: **{detected}**")
-
-                    first_tag = detected.split(",")[0].strip()
-                    matched = supabase.table("rrb_questions").select("*").ilike("question_text", f"%{first_tag}%").limit(10).execute().data
-                    
-                    if matched:
-                        st.success(f"Found {len(matched)} matching RRB questions!")
-                        for item in matched:
-                            st.markdown(f"""
-                            <div class="modern-card">
-                                <span class="badge-primary">{item['subject']}</span>
-                                <div style="margin-top: 10px; font-size: 15px; white-space: pre-wrap;">
-{item['question_text']}
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                if "ACTION: FETCH_QUESTIONS" in response_text:
+                    # Database lookup for matched questions
+                    topic_match = response_text.split("TOPIC:")[1].split("|")[0].strip()
+                    matched_items = supabase.table("rrb_questions").select("*").ilike("question_text", f"%{topic_match}%").limit(5).execute().data
+                    if matched_items:
+                        final_reply = f"Maine aapki request samajh li! Yahan **{topic_match}** ke PYQ sawal hain:\n\n"
+                        for idx, q in enumerate(matched_items, 1):
+                            final_reply += f"**{idx}.** {q['question_text']}\n\n"
                     else:
-                        st.warning("No direct match found in database for these notes.")
+                        final_reply = f"Maine '{topic_match}' samajh liya, par database me is specific keyword ka direct sawal abhi nahi mila. Kya main is concept ko detail me samjha doon?"
+                else:
+                    final_reply = response_text
+
+                st.markdown(final_reply)
+                st.session_state.chat_messages.append({"role": "assistant", "content": final_reply})
+
+# ----------------- TAB 2: GENERATE CLEAN PYQ PDF -----------------
+elif nav == "📄 Generate Clean PYQ PDF":
+    st.markdown("""
+    <div class="app-header">
+        <h2 style="margin: 0; font-weight: 800;">Sample-Matched PDF Generator</h2>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Aapke provided document ke exact layout me printable A4 PDF generate karein.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        pdf_sub = st.text_input("Subject Title", value="Estimation and Costing")
+    with col2:
+        pdf_chap = st.text_input("Chapter Title", value="Introduction")
+
+    num_qs = st.slider("Select Question Count", 5, 50, 20)
+
+    if st.button("⚡ Generate Standard PDF Document", use_container_width=True):
+        with st.spinner("Extracting from cloud and building PDF layout..."):
+            query = supabase.table("rrb_questions").select("*").limit(num_qs).execute().data
+            if not query:
+                st.warning("Database me sawal nahi mile. Pehle 'Cloud PDF Ingestion' me jaakar PDF upload karein.")
+            else:
+                pdf_bytes = generate_sample_style_pdf(pdf_sub, pdf_chap, query)
+                st.success("✅ Aapki printable PDF taiyar ho gayi hai!")
+                st.download_button(
+                    label="📥 Download PDF Document",
+                    data=pdf_bytes,
+                    file_name=f"{pdf_sub} - {pdf_chap}.pdf",
+                    mime="application/pdf"
+                )
+
+# ----------------- TAB 3: CLOUD PDF INGESTION -----------------
+elif nav == "🚀 Cloud PDF Ingestion":
+    st.markdown("""
+    <div class="app-header">
+        <h2 style="margin: 0; font-weight: 800;">Safe Batch Cloud Ingestion</h2>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Adda247, Testbook, aur coaching answer keys ko bina failure ke sync karein.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    up_pdfs = st.file_uploader("Upload Exam PDFs", type=["pdf"], accept_multiple_files=True)
+    if up_pdfs and st.button("Start Safe Sync", use_container_width=True):
+        total_synced = 0
+        for p in up_pdfs:
+            shift_title = p.name.replace(".pdf", "")
+            raw_qs = extract_questions_clean(p)
+            records = []
+            for q_txt in raw_qs:
+                sub, top = quick_categorize(q_txt)
+                records.append({
+                    "question_text": q_txt,
+                    "options": json.dumps([]),
+                    "correct_option": "B",
+                    "subject": sub,
+                    "topic": top,
+                    "shift_name": shift_title
+                })
+            # Batch insertion
+            for i in range(0, len(records), 20):
+                supabase.table("rrb_questions").insert(records[i:i+20]).execute()
+                total_synced += len(records[i:i+20])
+        st.balloons()
+        st.success(f"Successfully synced {total_synced} questions to Supabase!")
+
+# ----------------- TAB 4: CBT EXAM ARENA -----------------
+elif nav == "🎯 CBT Exam Arena":
+    st.markdown("### ⏱️ TCS iON Exam Simulator")
+    data = supabase.table("rrb_questions").select("*").limit(10).execute().data
+    if data:
+        for idx, item in enumerate(data, 1):
+            st.markdown(f"**Q.{idx}** {item['question_text']}")
+            st.radio("Options", ["A", "B", "C", "D"], key=f"cbt_{idx}", horizontal=True)
+    else:
+        st.info("No questions in database yet.")
 
 # ----------------- TAB 5: DATA MANAGER & SAFE DELETE -----------------
 elif nav == "🛡️ Data Manager & Safe Delete":
     st.markdown("### 🛡️ Cloud Storage Governance")
-    
     count_res = supabase.table("rrb_questions").select("id", count="exact").execute()
-    total_q = count_res.count if count_res.count is not None else 0
-
-    st.markdown(f"""
-    <div class="app-header">
-        <h2>Live Question Bank: {total_q} Items</h2>
-        <p>Supabase Cloud PostgreSQL Production Instance</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("#### Triple-Lock Safe Delete")
-    del_id = st.number_input("Question ID to remove:", min_value=1, step=1)
-    lock1 = st.checkbox("Confirm: I acknowledge this action is permanent.")
-    lock2 = st.text_input("Type 'DELETE' to confirm:")
-    
-    can_delete = lock1 and (lock2.strip() == "DELETE")
-    if st.button("🚨 Permanently Delete Record", disabled=not can_delete):
-        supabase.table("rrb_questions").delete().eq("id", del_id).execute()
-        st.success(f"ID {del_id} successfully deleted.")
-        st.rerun()
+    st.write(f"Total live questions: **{count_res.count if count_res.count else 0}**")
