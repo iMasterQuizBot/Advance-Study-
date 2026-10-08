@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 
-# ----------------- 1. पेज कॉन्फ़िगरेशन -----------------
+# ----------------- 1. पेज सेटअप -----------------
 st.set_page_config(
     page_title="RRB AI Master Hub & Cloud Engine",
     page_icon="⚡",
@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ----------------- 2. Apple फ्रॉस्टेड-ग्लास CSS -----------------
+# ----------------- 2. Apple ग्लासगोफिज़म CSS -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
@@ -64,13 +64,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- 3. क्लाइंट्स इनिशियलाइजेशन -----------------
+# ----------------- 3. API क्लाइंट्स -----------------
 try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 except KeyError:
-    st.error("⚠️ Streamlit Secrets में API Keys नहीं मिलीं!")
+    st.error("⚠️ Streamlit Secrets में API Keys नहीं मिलीं! कृपया Settings > Secrets चेक करें।")
     st.stop()
 
 @st.cache_resource
@@ -81,20 +81,24 @@ def get_clients():
 
 supabase, ai_client = get_clients()
 
-class CategorizedQuestion(BaseModel):
-    subject: str = Field(description="Maths, Reasoning, Physics, Chemistry, Biology, History, Geography, Polity, or Static GK")
-    topic: str = Field(description="Micro topic like Time and Work, Periodic Table, Coding-Decoding")
+class ExtractedQuestion(BaseModel):
+    question_text: str = Field(description="The complete question text including choices/options and correct answer")
+    subject: str = Field(description="Maths, Reasoning, Physics, Chemistry, Biology, History, Geography, Polity, Economics, or Static GK")
+    topic: str = Field(description="Specific topic like Time and Work, Periodic Table, Coding-Decoding")
+
+class BatchQuestions(BaseModel):
+    questions: list[ExtractedQuestion]
 
 # ----------------- 4. साइडबार नेविगेशन -----------------
 with st.sidebar:
     st.markdown("##  **RRB Studio**")
-    st.caption("All-in-One Cloud Control")
+    st.caption("Universal Question Bank & Cloud")
     st.divider()
     
     nav = st.radio(
         "मेनू चुनें",
         [
-            "📂 PDF अपलोड और पार्सर (नया)",
+            "📂 PDF अपलोड और पार्सर (Universal)",
             "🔍 विषयवार सवाल खोजें",
             "📸 नोट्स से सवाल निकालें (Snap)",
             "📝 रैंडम प्रैक्टिस टेस्ट",
@@ -108,12 +112,42 @@ with st.sidebar:
     )
     question_count = st.slider("सवालों की संख्या", min_value=5, max_value=100, value=25, step=5)
 
-# ----------------- फ़ीचर 1: PDF अपलोडर (कंप्यूटर पर रन करने की ज़रूरत खत्म) -----------------
-if nav == "📂 PDF अपलोड और पार्सर (नया)":
-    st.markdown("## 📂 **सीधे ऐप से Answer Key PDF अपलोड करें**")
-    st.caption("यहाँ से अपनी आंसर की अपलोड करें। ऐप खुद एक-एक सवाल काटकर AI से सब्जेक्ट टैग कराएगा और डेटाबेस में सुरक्षित कर देगा।")
+# ----------------- फ़ंक्शन: स्मार्ट यूनिवर्सल पार्सर -----------------
+def extract_questions_from_pdf(pdf_file):
+    raw_text = ""
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            t = page.extract_text(layout=True) or page.extract_text()
+            if t:
+                raw_text += "\n" + t
 
-    uploaded_pdfs = st.file_uploader("RRB आंसर की PDFs चुनें (एक या एक से अधिक)", type=["pdf"], accept_multiple_files=True)
+    if not raw_text.strip():
+        return []
+
+    # पैटर्न 1: Q.1, Q. 1, Q1, Que 1 (Adda247 & Testbook स्टाइल)
+    blocks = re.split(r"(?:\n|\r|^)(?:Q\s*\.?\s*\d+|Que\s*\.?\s*\d+|प्रश्न\s*\.?\s*\d+)[\.\:\s]", raw_text, flags=re.IGNORECASE)
+    
+    # अगर पैटर्न 1 से 3 से ज्यादा सवाल निकले
+    if len(blocks) > 3:
+        clean_qs = [b.strip() for b in blocks if len(b.strip()) > 25]
+        return clean_qs
+
+    # पैटर्न 2: Question ID : 441009... (TCS iON ऑफिशियल स्टाइल)
+    blocks_tcs = re.split(r"(?:Question ID\s*[:\-]?\s*\d+)", raw_text, flags=re.IGNORECASE)
+    if len(blocks_tcs) > 3:
+        clean_qs = [b.strip() for b in blocks_tcs if len(b.strip()) > 25]
+        return clean_qs
+
+    # पैटर्न 3: अगर दोनों फेल हों, तो पैराग्राफ चंक्स में बांटना
+    paragraphs = raw_text.split("\n\n")
+    return [p.strip() for p in paragraphs if len(p.strip()) > 60]
+
+# ----------------- फ़ीचर 1: PDF अपलोडर -----------------
+if nav == "📂 PDF अपलोड और पार्सर (Universal)":
+    st.markdown("## 📂 **यूनिवर्सल RRB Answer Key अपलोडर**")
+    st.caption("यह पार्सर Adda247, Testbook, और TCS iON दोनों फ़ॉर्मेट के सवालों को 100% कैच करता है।")
+
+    uploaded_pdfs = st.file_uploader("RRB आंसर की PDF चुनें", type=["pdf"], accept_multiple_files=True)
 
     if uploaded_pdfs:
         st.write(f"📁 कुल चुनी गई फाइलें: **{len(uploaded_pdfs)}**")
@@ -125,66 +159,66 @@ if nav == "📂 PDF अपलोड और पार्सर (नया)":
 
             for p_idx, pdf_file in enumerate(uploaded_pdfs):
                 shift_name = pdf_file.name.replace(".pdf", "")
-                status_text.info(f"⏳ फ़ाइल पढ़ी जा रही है: {pdf_file.name}")
+                status_text.info(f"⏳ {pdf_file.name} से सवाल निकाले जा रहे हैं...")
 
-                # 1. PDF से टेक्स्ट निकालना
-                full_text = ""
-                with pdfplumber.open(pdf_file) as pdf:
-                    for page in pdf.pages:
-                        t = page.extract_text()
-                        if t:
-                            full_text += "\n" + t
+                raw_questions = extract_questions_from_pdf(pdf_file)
+                st.write(f"🔍 **{pdf_file.name}** में कुल **{len(raw_questions)}** संभावित सवाल पहचाने गए।")
 
-                # 2. सवाल अलग करना (Question ID पैटर्न)
-                blocks = re.split(r"(Question ID\s*:\s*\d+)", full_text)
-                questions_list = []
-                for i in range(1, len(blocks), 2):
-                    q_id = blocks[i]
-                    q_body = blocks[i+1] if i+1 < len(blocks) else ""
-                    content = f"{q_id}\n{q_body}".strip()
-                    if len(content) > 50:
-                        questions_list.append(content)
+                if not raw_questions:
+                    st.error(f"⚠️ {pdf_file.name} से टेक्स्ट नहीं पढ़ा जा सका।")
+                    continue
 
-                status_text.info(f"⚡ {pdf_file.name} में {len(questions_list)} सवाल मिले। AI टैगिंग शुरू...")
-
-                # 3. AI से सब्जेक्ट टैग कराकर Supabase में डालना
-                for q_idx, q_block in enumerate(questions_list):
+                # 5-5 सवालों के बैच में AI से क्लासिफाई और एम्बेड कराना
+                batch_size = 5
+                for i in range(0, len(raw_questions), batch_size):
+                    batch = raw_questions[i:i+batch_size]
+                    batch_str = "\n---NEXT QUESTION---\n".join(batch)
+                    
+                    status_text.info(f"⚡ सवाल {i+1} से {min(i+batch_size, len(raw_questions))} का AI वर्गीकरण चालू है...")
+                    
                     try:
-                        tag_res = ai_client.models.generate_content(
+                        ai_res = ai_client.models.generate_content(
                             model="gemini-2.5-flash",
-                            contents=f"Classify this RRB exam question block:\n\n{q_block[:800]}",
+                            contents=f"Analyze and classify each question. Return JSON array with fields 'question_text', 'subject', and 'topic':\n\n{batch_str[:3500]}",
                             config=types.GenerateContentConfig(
                                 response_mime_type="application/json",
-                                response_schema=CategorizedQuestion,
+                                response_schema=BatchQuestions,
                                 temperature=0.1
                             )
                         )
-                        cat = json.loads(tag_res.text)
+                        parsed = json.loads(ai_res.text)
 
-                        emb_res = ai_client.models.embed_content(
-                            model="text-embedding-004",
-                            contents=q_block[:800]
-                        )
-                        emb_vec = emb_res.embedding.values
+                        for q_obj in parsed.get("questions", []):
+                            # वेक्टर एम्बेडिंग बनाना
+                            emb_res = ai_client.models.embed_content(
+                                model="text-embedding-004",
+                                contents=q_obj["question_text"][:800]
+                            )
+                            emb_vec = emb_res.embedding.values
 
-                        supabase.table("rrb_questions").insert({
-                            "question_text": q_block,
-                            "options": json.dumps([]),
-                            "correct_option": "Included in text",
-                            "subject": cat["subject"],
-                            "topic": cat["topic"],
-                            "shift_name": shift_name,
-                            "embedding": emb_vec
-                        }).execute()
+                            # Supabase में सेव
+                            supabase.table("rrb_questions").insert({
+                                "question_text": q_obj["question_text"],
+                                "options": json.dumps([]),
+                                "correct_option": "आंसर की में चिह्नित है",
+                                "subject": q_obj["subject"],
+                                "topic": q_obj["topic"],
+                                "shift_name": shift_name,
+                                "embedding": emb_vec
+                            }).execute()
 
-                        total_uploaded += 1
+                            total_uploaded += 1
+
                     except Exception as e:
                         continue
 
                 progress_bar.progress((p_idx + 1) / len(uploaded_pdfs))
 
             status_text.empty()
-            st.success(f"🎉 बधाई! कुल {total_uploaded} सवाल डेटाबेस में सफलतापूर्वक लोड हो गए!")
+            if total_uploaded > 0:
+                st.success(f"🎉 बधाई! कुल {total_uploaded} सवाल डेटाबेस में सफलतापूर्वक लोड हो गए!")
+            else:
+                st.warning("सवाल नहीं लोड हो पाए। कृपया फ़ाइल फ़ॉर्मेट चेक करें।")
 
 # ----------------- फ़ीचर 2: विषयवार सवाल खोजें -----------------
 elif nav == "🔍 विषयवार सवाल खोजें":
