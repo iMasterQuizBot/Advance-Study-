@@ -6,9 +6,7 @@ from PIL import Image
 import pdfplumber
 from supabase import create_client
 from google import genai
-from google.genai import types
 
-# ReportLab libraries for standard PDF generation matching your sample
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -16,7 +14,7 @@ from reportlab.lib import colors
 
 # ----------------- 1. Page Configuration -----------------
 st.set_page_config(
-    page_title="RRB AI Engine Pro",
+    page_title="RRB AI Master Engine Pro",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -74,16 +72,56 @@ def get_clients():
 
 supabase, ai_client = get_clients()
 
-# ----------------- 4. PDF Generation Engine (Exact Layout Match) -----------------
+# ----------------- Safe Gemini Generation Helper -----------------
+def generate_ai_text(prompt_text):
+    """ClientError / 404 prevent karne ke liye stable verified models"""
+    models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    for m in models_to_try:
+        try:
+            res = ai_client.models.generate_content(
+                model=m,
+                contents=prompt_text
+            )
+            return res.text
+        except Exception:
+            continue
+    return "AI request process nahi ho saki. Please check your prompt or network."
+
+# ----------------- 4. Accurate Parser (Fixing "Do wala alag" & Metadata issue) -----------------
+def clean_and_extract_actual_questions(pdf_file):
+    """
+    Header metadata (Test Date, Section, Note wagairah) ko ignore karke
+    sirf valid exam questions extract karta hai.
+    """
+    raw_pages = []
+    with pdfplumber.open(pdf_file) as pdf:
+        for page in pdf.pages:
+            t = page.extract_text(layout=False) or ""
+            if t:
+                raw_pages.append(t)
+    
+    full_text = "\n".join(raw_pages)
+
+    # Question blocks ko split karne ke patterns (numbered & Question ID based)
+    pattern = r"(?:\n|\r|^)(?:Q\s*[\.\:\-]?\s*\d+|Que\s*[\.\:\-]?\s*\d+|\d+\.)\s+"
+    raw_blocks = re.split(pattern, full_text, flags=re.IGNORECASE)
+
+    valid_questions = []
+    for b in raw_blocks:
+        b_clean = b.strip()
+        # Header / Instruction filter: inme sawal ke bajay exam date ya instructions hote hain
+        is_metadata = any(x in b_clean.lower() for x in ["previous year paper", "test date", "test time", "correct answer will carry", "chosen option on the right"])
+        if is_metadata:
+            continue
+        
+        # Valid question check (question length & mcq keywords)
+        if len(b_clean) > 35 and ("option" in b_clean.lower() or "ans" in b_clean.lower() or "?" in b_clean):
+            valid_questions.append(b_clean)
+
+    return valid_questions
+
+# ----------------- 5. Clean PDF Generator matching sample -----------------
 def generate_sample_style_pdf(subject_title, chapter_title, questions_list):
-    """
-    User ki provided PDF jaisa clean layout banata hai:
-    [Subject]
-    Chapter - Title
-    1. Question text
-       A. ... B. ...
-    Answer Key grid at bottom
-    """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -129,56 +167,27 @@ def generate_sample_style_pdf(subject_title, chapter_title, questions_list):
     answers_collected = []
 
     for i, q in enumerate(questions_list, 1):
-        clean_text = q.get('question_text', '').replace('\n', '<br/>')
-        q_p = Paragraph(f"<b>{i}.</b> {clean_text}", q_style)
-        story.append(KeepTogether([q_p, Spacer(1, 4)]))
-        
-        # Answer format collection
-        ans = q.get('correct_option', 'B')
+        q_raw = q.get('question_text', '').replace('\n', '<br/>')
+        story.append(KeepTogether([Paragraph(f"<b>{i}.</b> {q_raw}", q_style), Spacer(1, 4)]))
+        ans = q.get('correct_option', 'Marked')
         answers_collected.append(f"{i}. {ans}")
 
-    # Answer Key grid
     story.append(Spacer(1, 16))
     story.append(Paragraph("<b>Answer Key</b>", title_style))
     story.append(Spacer(1, 6))
-    
-    # 10 answers per line grid format
-    grid_lines = []
+
     for k in range(0, len(answers_collected), 10):
-        grid_lines.append(" | ".join(answers_collected[k:k+10]))
-    
-    for line in grid_lines:
-        story.append(Paragraph(line, ans_style))
+        grid_line = " | ".join(answers_collected[k:k+10])
+        story.append(Paragraph(grid_line, ans_style))
         story.append(Spacer(1, 2))
 
     doc.build(story)
     buffer.seek(0)
     return buffer
 
-# ----------------- 5. Smart Fallback Ingestion Rule -----------------
-def quick_categorize(text):
-    t = text.lower()
-    if any(w in t for w in ['plinth', 'carpet', 'estimation', 'costing', 'far', 'fsi', 'area', 'rate', 'tender']):
-        return "Civil Engineering", "Estimation and Costing"
-    if any(w in t for w in ['प्रतिशत', '%', 'औसत', 'अनुपात', 'ब्याज', 'ट्रेन', 'speed', 'ratio']):
-        return "Maths", "Quantitative Aptitude"
-    if any(w in t for w in ['श्रृंखला', 'सीटिंग', 'दिशा', 'coding', 'blood relation']):
-        return "Reasoning", "General Intelligence"
-    return "General Studies", "General Knowledge"
-
-def extract_questions_clean(pdf_file):
-    raw_text = ""
-    with pdfplumber.open(pdf_file) as pdf:
-        for page in pdf.pages:
-            t = page.extract_text(layout=False) or ""
-            if t: raw_text += "\n" + t
-    pattern = r"(?:\n|\r|^)(?:Q\s*[\.\:\-]?\s*\d+|Que\s*[\.\:\-]?\s*\d+|\d+\.|\d+\))\s*"
-    blocks = re.split(pattern, raw_text, flags=re.IGNORECASE)
-    return [b.strip() for b in blocks if len(b.strip()) > 35]
-
 # ----------------- 6. Navigation Hub -----------------
 nav = st.sidebar.radio(
-    "AI Engine Mode",
+    "Navigation Hub",
     [
         "💬 AI Smart Chat & Fuzzy Assistant",
         "📄 Generate Clean PYQ PDF",
@@ -193,7 +202,7 @@ if nav == "💬 AI Smart Chat & Fuzzy Assistant":
     st.markdown("""
     <div class="app-header">
         <h2 style="margin: 0; font-weight: 800;">AI Conversational Partner</h2>
-        <p style="margin: 6px 0 0 0; opacity: 0.9;">Aap galat spelling ya bolke bhi puchein, AI khud context samajh kar explain karega aur database se sawal dega.</p>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Aap galat spelling ya tooti-footi Hindi/Hinglish me bole, AI sahi intent samajh kar explain karega.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -204,7 +213,7 @@ if nav == "💬 AI Smart Chat & Fuzzy Assistant":
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    user_prompt = st.chat_input("Mujhse kuch bhi pucho (e.g. 'estimesion ka plinth area samjhao' ya '20 maths question do')...")
+    user_prompt = st.chat_input("Mujhse sawal pucho ya concept samjho...")
 
     if user_prompt:
         st.session_state.chat_messages.append({"role": "user", "content": user_prompt})
@@ -212,101 +221,87 @@ if nav == "💬 AI Smart Chat & Fuzzy Assistant":
             st.markdown(user_prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("AI analyzing your intent..."):
-                # Intent & Spelling Correction check
-                interpreter_prompt = f"""
-                User input: "{user_prompt}"
-                User might have spelling mistakes or broken hinglish.
-                1. Identify the core topic/intent.
-                2. If user is asking for questions, output: ACTION: FETCH_QUESTIONS | TOPIC: <topic> | COUNT: <number>
-                3. If user is having a conversation or asking for an explanation, respond naturally, like a helpful mentor in Hinglish.
+            with st.spinner("AI thinking..."):
+                prompt = f"""
+                You are an intelligent expert exam tutor for RRB JE and Civil/Engineering exams.
+                User input (may have spelling mistakes or broken hinglish): "{user_prompt}"
+                Instructions:
+                1. Understand the true intent even with typos.
+                2. Explain clearly in friendly conversational Hinglish.
+                3. If relevant, provide formulas, quick tricks, and 1 practice question.
                 """
-                ai_res = ai_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=interpreter_prompt
-                )
-                response_text = ai_res.text
-
-                if "ACTION: FETCH_QUESTIONS" in response_text:
-                    # Database lookup for matched questions
-                    topic_match = response_text.split("TOPIC:")[1].split("|")[0].strip()
-                    matched_items = supabase.table("rrb_questions").select("*").ilike("question_text", f"%{topic_match}%").limit(5).execute().data
-                    if matched_items:
-                        final_reply = f"Maine aapki request samajh li! Yahan **{topic_match}** ke PYQ sawal hain:\n\n"
-                        for idx, q in enumerate(matched_items, 1):
-                            final_reply += f"**{idx}.** {q['question_text']}\n\n"
-                    else:
-                        final_reply = f"Maine '{topic_match}' samajh liya, par database me is specific keyword ka direct sawal abhi nahi mila. Kya main is concept ko detail me samjha doon?"
-                else:
-                    final_reply = response_text
-
-                st.markdown(final_reply)
-                st.session_state.chat_messages.append({"role": "assistant", "content": final_reply})
+                reply = generate_ai_text(prompt)
+                st.markdown(reply)
+                st.session_state.chat_messages.append({"role": "assistant", "content": reply})
 
 # ----------------- TAB 2: GENERATE CLEAN PYQ PDF -----------------
 elif nav == "📄 Generate Clean PYQ PDF":
     st.markdown("""
     <div class="app-header">
-        <h2 style="margin: 0; font-weight: 800;">Sample-Matched PDF Generator</h2>
-        <p style="margin: 6px 0 0 0; opacity: 0.9;">Aapke provided document ke exact layout me printable A4 PDF generate karein.</p>
+        <h2 style="margin: 0; font-weight: 800;">Clean Printable PDF Generator</h2>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Sample document ke standard layout me A4 printable PDF download karein.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        pdf_sub = st.text_input("Subject Title", value="Estimation and Costing")
-    with col2:
-        pdf_chap = st.text_input("Chapter Title", value="Introduction")
+    c1, c2 = st.columns(2)
+    with c1:
+        p_sub = st.text_input("Subject Title", value="Estimation and Costing")
+    with c2:
+        p_chap = st.text_input("Chapter Title", value="Introduction")
 
-    num_qs = st.slider("Select Question Count", 5, 50, 20)
+    count_slider = st.slider("Kitne questions chahiye?", 5, 50, 15)
 
-    if st.button("⚡ Generate Standard PDF Document", use_container_width=True):
-        with st.spinner("Extracting from cloud and building PDF layout..."):
-            query = supabase.table("rrb_questions").select("*").limit(num_qs).execute().data
-            if not query:
-                st.warning("Database me sawal nahi mile. Pehle 'Cloud PDF Ingestion' me jaakar PDF upload karein.")
-            else:
-                pdf_bytes = generate_sample_style_pdf(pdf_sub, pdf_chap, query)
-                st.success("✅ Aapki printable PDF taiyar ho gayi hai!")
-                st.download_button(
-                    label="📥 Download PDF Document",
-                    data=pdf_bytes,
-                    file_name=f"{pdf_sub} - {pdf_chap}.pdf",
-                    mime="application/pdf"
-                )
+    if st.button("⚡ Generate PDF Document", use_container_width=True):
+        data = supabase.table("rrb_questions").select("*").limit(count_slider).execute().data
+        if not data:
+            st.warning("Database me sawal nahi mile. Pehle 'Cloud PDF Ingestion' tab me jaakar PDF upload karein.")
+        else:
+            pdf_bytes = generate_sample_style_pdf(p_sub, p_chap, data)
+            st.success("PDF ready ho gayi!")
+            st.download_button(
+                label="📥 Download PDF Document",
+                data=pdf_bytes,
+                file_name=f"{p_sub} - {p_chap}.pdf",
+                mime="application/pdf"
+            )
 
-# ----------------- TAB 3: CLOUD PDF INGESTION -----------------
+# ----------------- TAB 3: CLOUD PDF INGESTION (Accurate Fix) -----------------
 elif nav == "🚀 Cloud PDF Ingestion":
     st.markdown("""
     <div class="app-header">
-        <h2 style="margin: 0; font-weight: 800;">Safe Batch Cloud Ingestion</h2>
-        <p style="margin: 6px 0 0 0; opacity: 0.9;">Adda247, Testbook, aur coaching answer keys ko bina failure ke sync karein.</p>
+        <h2 style="margin: 0; font-weight: 800;">Smart Shift-Proof Ingestion</h2>
+        <p style="margin: 6px 0 0 0; opacity: 0.9;">Header metadata filter karke sahi sequential numbering ke sath cloud sync karein.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    up_pdfs = st.file_uploader("Upload Exam PDFs", type=["pdf"], accept_multiple_files=True)
-    if up_pdfs and st.button("Start Safe Sync", use_container_width=True):
+    up_files = st.file_uploader("Upload Exam PDFs", type=["pdf"], accept_multiple_files=True)
+    if up_files and st.button("Start Accurate Sync", use_container_width=True):
         total_synced = 0
-        for p in up_pdfs:
-            shift_title = p.name.replace(".pdf", "")
-            raw_qs = extract_questions_clean(p)
+        for f in up_files:
+            shift_name = f.name.replace(".pdf", "")
+            questions = clean_and_extract_actual_questions(f)
+            st.write(f"📁 **{f.name}**: {len(questions)} actual questions detected (headers filtered).")
+
             records = []
-            for q_txt in raw_qs:
-                sub, top = quick_categorize(q_txt)
+            for q_text in questions:
+                # Basic classification
+                sub = "Civil Engineering" if any(k in q_text.lower() for k in ["plinth", "concrete", "wall", "beam", "soil", "cement"]) else "General Aptitude"
                 records.append({
-                    "question_text": q_txt,
+                    "question_text": q_text,
                     "options": json.dumps([]),
-                    "correct_option": "B",
+                    "correct_option": "Marked in Key",
                     "subject": sub,
-                    "topic": top,
-                    "shift_name": shift_title
+                    "topic": "RRB PYQ",
+                    "shift_name": shift_name
                 })
-            # Batch insertion
-            for i in range(0, len(records), 20):
-                supabase.table("rrb_questions").insert(records[i:i+20]).execute()
-                total_synced += len(records[i:i+20])
+
+            for b_idx in range(0, len(records), 15):
+                batch = records[b_idx:b_idx+15]
+                supabase.table("rrb_questions").insert(batch).execute()
+                total_synced += len(batch)
+
         st.balloons()
-        st.success(f"Successfully synced {total_synced} questions to Supabase!")
+        st.success(f"Successfully loaded {total_synced} genuine questions into Supabase!")
 
 # ----------------- TAB 4: CBT EXAM ARENA -----------------
 elif nav == "🎯 CBT Exam Arena":
@@ -317,7 +312,7 @@ elif nav == "🎯 CBT Exam Arena":
             st.markdown(f"**Q.{idx}** {item['question_text']}")
             st.radio("Options", ["A", "B", "C", "D"], key=f"cbt_{idx}", horizontal=True)
     else:
-        st.info("No questions in database yet.")
+        st.info("Pehle 'Cloud PDF Ingestion' me PDF upload karein.")
 
 # ----------------- TAB 5: DATA MANAGER & SAFE DELETE -----------------
 elif nav == "🛡️ Data Manager & Safe Delete":
