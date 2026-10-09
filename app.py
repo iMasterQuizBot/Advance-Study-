@@ -193,6 +193,12 @@ S = {
  "parse_mode": ("पार्सिंग तरीका", "Parsing method", "Parsing method"), "pm_ai": ("AI Vision (सबसे सही)", "AI Vision (most accurate)", "AI Vision (sabse sahi)"),
  "pm_text": ("टेक्स्ट (तेज़, हिंदी गड़बड़ हो सकती है)", "Text (fast, Hindi may break)", "Text (fast, Hindi bigad sakti hai)"),
  "missing_q": ("छूटे प्रश्न नंबर: {n}", "Missing question numbers: {n}", "Miss hue question numbers: {n}"),
+ "chapter_any": ("कोई भी चैप्टर लिखें (वैकल्पिक) — जैसे प्रकाश, light", "Type any chapter (optional) — e.g. light", "Koi bhi chapter likho (optional) — jaise prakash, light"),
+ "bilingual": ("द्विभाषी (हिंदी + English)", "Bilingual (Hindi + English)", "Bilingual (Hindi + English)"),
+ "img_chapter": ("📷 चैप्टर / नोट्स की फ़ोटो (वैकल्पिक) — चैप्टर अपने आप पहचानेगा", "📷 Chapter / notes photo (optional) — auto-detects chapter", "📷 Chapter / notes ki photo (optional) — chapter auto-detect hoga"),
+ "run_fixdb": ("🧹 सेव सवालों से ID/कचरा हटाएँ + 4 विकल्प अलग करें (100)", "🧹 Clean saved questions: remove IDs/junk + split 4 options (100)", "🧹 Saved questions saaf karo: ID/junk hatao + 4 options alag karo (100)"),
+ "run_solve": ("🤖 बिना आंसर वाले सवाल हल करें (15) — जाँच लें", "🤖 Solve questions without answer (15) — verify!", "🤖 Bina answer wale questions solve karo (15) — verify karna"),
+ "fixed_n": ("{n} सवाल सुधरे", "{n} questions fixed", "{n} questions fix hue"),
  "sec_hint": ("सवाल", "Questions", "Questions"), "of": ("/", "/", "/"),
 }
 _LI = {"hi": 0, "en": 1, "hn": 2}
@@ -473,8 +479,25 @@ def normc(v):
         return s[0]
     return None
 
+JUNK_RE = re.compile(r"(?:Question\s*Type\s*:\s*\w+|Question\s*ID\s*:\s*\d+|Option\s*\d\s*ID\s*:\s*\d+|"
+                     r"Status\s*:\s*(?:Not\s+)?(?:Answered|Visited|Marked\s+For\s+Review)(?:\s+and\s+Marked\s+For\s+Review)?|Chosen\s*Option\s*:\s*[\d\-]+)", re.I)
+
+def clean_blob(text):
+    t0 = JUNK_RE.sub(" ", text or "")
+    t0 = re.sub(r"\bAns\s*(?=[1-4A-Da-d][\.\)])", " ", t0)
+    t0 = re.sub(r"\s+", " ", t0).strip()
+    stem, opts = split_inline_options(t0)
+    return (stem, opts) if len(opts) >= 2 else (t0, [])
+
 def norm_q(r):
-    return dict(id=r.get("id"), q_no=r.get("q_no"), text=r.get("question_text") or "", options=parse_opts(r.get("options")),
+    text, opts = r.get("question_text") or "", parse_opts(r.get("options"))
+    if len(opts) < 2:
+        s0, o0 = clean_blob(text)
+        if o0: text, opts = s0, o0
+    else:
+        text = re.sub(r"\s+", " ", JUNK_RE.sub(" ", text)).strip()
+        opts = [re.sub(r"\s+", " ", JUNK_RE.sub(" ", o)).strip() for o in opts]
+    return dict(id=r.get("id"), q_no=r.get("q_no"), text=text, options=opts,
                 correct=normc(r.get("correct_option")), expl=r.get("explanation") or "",
                 subject=r.get("subject") or "General", topic=r.get("topic") or "General",
                 difficulty=r.get("difficulty") or "medium", year=r.get("year"), shift=r.get("shift_name") or "", exam=r.get("exam") or "")
@@ -640,7 +663,7 @@ def strip_headers(pages):
     out = []
     for p in pages:
         for l in p.splitlines():
-            s = l.strip()
+            s = re.sub(r"\s+", " ", JUNK_RE.sub(" ", l)).strip()
             if not s or HDR_RE.search(s) or cnt.get(norm(l), 0) >= lim:
                 continue
             out.append(s)
@@ -702,7 +725,7 @@ def parse_questions(pages):
         m = OPT_W.match(l) or OPT_A.match(l)
         if m and not in_exp:
             _, inl = split_inline_options(l)
-            cur["opts"].extend(inl if len(inl) >= 2 else [m.group(2).strip()]); cur["style"] = cur["style"] or "alpha"; continue
+            cur["opts"].extend(inl if len(inl) >= 2 else [m.group(2).strip()]); cur["style"] = cur["style"] or ("num" if m.group(1) in "1234" else "alpha"); continue
         m = OPT_N.match(l)
         if m and not in_exp and (cur["style"] in (None, "num")) and cur["stem"]:
             _, inl = split_inline_options(l)
@@ -728,7 +751,7 @@ def parse_questions(pages):
 
 VISION_PROMPT = ("You are digitising an Indian competitive-exam question paper from page images. Extract EVERY multiple-choice question visible, exactly as printed - "
  "never skip, shorten or paraphrase any line. If a question is bilingual keep BOTH languages (Hindi first, then English) in the question and in each option, as printed. "
- "Keep numbers, codes, letter-number sequences, symbols and units exactly. Ignore headers, footers, watermarks, page numbers and general instructions. "
+ "Keep numbers, codes, letter-number sequences, symbols and units exactly. Ignore headers, footers, system metadata (Question Type, Question ID, Option IDs, Status, Chosen Option) - output only the question stem and its option texts, watermarks, page numbers and general instructions. "
  "If a question has a figure/diagram that cannot be written as text, put [Figure: short description] where it appears. If a question is cut at a page edge, include what is visible. "
  "Give up to 4 options in order A-D (text only, without the A/B/C/D or 1/2/3/4 label). Set answer ONLY if the page itself shows the correct option (answer key / tick / 'Correct'), else null - never guess. "
  'If an answer-key table is on these pages also return it. Return ONLY JSON: {"questions":[{"q_no":1,"question":"...","options":["...","...","...","..."],"answer":null}],"answer_key":{"1":"B"}}')
@@ -1099,10 +1122,40 @@ def filters_ui(prefix, df, with_count=True, default_n=15, maxn=100):
     n = st.slider(t("count"), 5, maxn, default_n, key=f"{prefix}_n") if with_count else None
     return dict(subjects=sel_s, topics=sel_t, shifts=sel_h, diffs=sel_d), n
 
+def chapter_terms(text):
+    js = parse_json(ai_text('Return ONLY JSON {"terms": [...]} with 6-10 short search terms (English AND Hindi synonyms, no spelling mistakes) for the exam chapter/topic "'
+                            + text + '" (may be Hindi/Hinglish with typos; e.g. प्रकाश = light, optics, reflection, refraction, lens, mirror).', json_mode=True))
+    terms = js.get("terms") if isinstance(js, dict) else None
+    return tuple(str(x) for x in (terms or [text]))[:10]
+
+@st.cache_data(ttl=300, show_spinner=False)
+def search_chapter_rows(terms, limit=300):
+    out, seen = [], set()
+    for tm in terms:
+        tm = re.sub(r"[,()%*]", " ", tm).strip()
+        if len(tm) < 3: continue
+        try:
+            rows = sb().table("rrb_questions").select(COLS).or_(f"question_text.ilike.%{tm}%,topic.ilike.%{tm}%").limit(80).execute().data or []
+        except Exception:
+            continue
+        for r in rows:
+            if r["id"] not in seen:
+                seen.add(r["id"]); out.append(norm_q(r))
+        if len(out) >= limit: break
+    return out
+
+def search_chapter(text, n):
+    rows = search_chapter_rows(chapter_terms(text))
+    if len(rows) < n:
+        have = {q["id"] for q in rows}
+        rows = rows + [q for q in retrieve(text, [], k=30) if q["id"] not in have]
+    return rows
+
 def pr_start(flt, n, src):
     ss = st.session_state
     if src == "book": rows = get_questions(ids=list(ss.bookmarks)) if ss.bookmarks else []
     elif src == "wrong": rows = get_questions(ids=list(ss.wrong)) if ss.wrong else []
+    elif (ss.get("pf_chapter") or "").strip(): rows = search_chapter(ss["pf_chapter"].strip(), n)
     else: rows = get_questions(**flt)
     if src != "seq": random.shuffle(rows)
     rows = [prepare_q(q, cfg("shuffle_opts")) for q in rows[:n]]
@@ -1146,6 +1199,7 @@ def page_practice():
         df = meta(); db_error_box()
         src = st.radio(t("src_mode"), ["random", "seq", "book", "wrong"], horizontal=True, key="pr_src",
                        format_func=lambda k: {"random": t("m_random"), "seq": t("m_seq"), "book": f"{t('m_book')} ({len(ss.bookmarks)})", "wrong": f"{t('m_wrong')} ({len(ss.wrong)})"}[k])
+        st.text_input(t("chapter_any"), key="pf_chapter", placeholder=t("chapter_any"), label_visibility="collapsed")
         flt, n = filters_ui("pf", df)
         if ss.get("pr_msg"): st.warning(ss.pr_msg)
         st.button(t("start"), type="primary", use_container_width=True, on_click=pr_start, args=(flt, n, src))
@@ -1399,22 +1453,33 @@ def transcribe(audio):
     p = "Transcribe this speech exactly (Hindi/English/Hinglish). Return only the text."
     return ai_text([types.Part.from_bytes(data=audio.getvalue(), mime_type="audio/wav"), p])
 
-def gen_questions(chapter, n, diff):
-    ex = retrieve(chapter, [chapter])
+def gen_questions(chapter, n, diff, image=None, bilingual=False):
+    ex = retrieve(chapter, [chapter]) if chapter else []
     ctx = "\n".join(f"- {q['text']}" for q in ex) or "(none)"
-    out, seen, tries, name = [], set(), 0, chapter
+    out, seen, tries, name, subj = [], set(), 0, chapter or "", None
     lvl = "a mix of easy, medium and hard" if diff == "mixed" else diff
+    bi = ('Write EVERY question and EVERY option in BOTH English and Hindi: question = "English text\nहिंदी पाठ", each option = "English / हिंदी" '
+          "(numbers, units, symbols identical). ") if bilingual else lang_rule().replace("Reply", "Write the questions") + " "
+    if image:
+        src = ("The attached image shows pages/notes of a chapter. First identify its subject and exact chapter, then create questions ONLY from that chapter's content. "
+               + (f'Extra instruction from the student: "{chapter}". ' if chapter else ""))
+    else:
+        src = (f'The student typed this chapter/topic (may have typos, Hindi or Hinglish; e.g. "प्रकाश" means Light): "{chapter}". '
+               "Stay STRICTLY inside this chapter - never drift to other chapters or subjects. ")
     while len(out) < n and tries < 4:
         tries += 1; k = min(15, n - len(out))
-        p = (f"You are an expert RRB JE / SSC JE paper setter. The student typed this chapter/topic (may have typos, Hindi or Hinglish): \"{chapter}\".\n"
-             f"Create {k} NEW exam-standard MCQs on it, level: {lvl}. {lang_rule().replace('Reply', 'Write the questions')}\n"
+        p = (f"You are an expert RRB JE / SSC JE / RRB NTPC paper setter. {src}\n"
+             f"Create {k} NEW questions in the exact standard format of the real exam: a clear question stem, exactly 4 plausible options (one correct, "
+             f"three realistic distractors), no IDs/labels/metadata in the text, 'All of the above' or 'None of these' only if natural. Level: {lvl}. {bi}\n"
              f"Style examples from our PYQ bank:\n{ctx}\n"
-             'Return ONLY JSON: {"chapter": "corrected chapter name in English", "questions": [{"question": "...", "options": ["...", "...", "...", "..."], '
-             '"answer": "A|B|C|D", "explanation": "max 50 words", "difficulty": "easy|medium|hard"}]}. Exactly 4 options, one correct, '
-             "no 'all of the above' unless needed, and do not repeat earlier questions: " + " || ".join(q["text"][:60] for q in out[-10:]))
-        js = parse_json(ai_text(p, json_mode=True))
+             'Return ONLY JSON: {"chapter": "chapter name in English", "subject": "Physics|Chemistry|Biology|Maths|Reasoning|General Awareness|Civil Engineering|'
+             'Electrical Engineering|Mechanical Engineering|Computer|Other", "questions": [{"question": "...", "options": ["...", "...", "...", "..."], '
+             '"answer": "A|B|C|D", "explanation": "max 50 words", "difficulty": "easy|medium|hard"}]}. Do not repeat earlier questions: '
+             + " || ".join(q["text"][:60] for q in out[-10:]))
+        contents = [types.Part.from_bytes(data=image.getvalue(), mime_type=image.type or "image/jpeg"), p] if image else p
+        js = parse_json(ai_text(contents, json_mode=True))
         if isinstance(js, dict):
-            name = str(js.get("chapter") or name)[:80]; items = js.get("questions") or []
+            name = str(js.get("chapter") or name)[:80]; subj = str(js.get("subject") or "") or subj; items = js.get("questions") or []
         else:
             items = js if isinstance(js, list) else []
         for o in items:
@@ -1426,7 +1491,7 @@ def gen_questions(chapter, n, diff):
             if len(opts) == 4 and ans and txt and h not in seen:
                 seen.add(h)
                 out.append(dict(id=None, q_no=None, text=txt, options=opts, correct=ans, expl=str(o.get("explanation", "")).strip(),
-                                subject=classify(name + " " + txt)[0], topic=name, difficulty=str(o.get("difficulty", "medium")).lower(),
+                                subject=subj or classify(name + " " + txt)[0], topic=name, difficulty=str(o.get("difficulty", "medium")).lower(),
                                 year=None, shift="AI: " + name, exam="AI Generated"))
     return name, out[:n]
 
@@ -1456,6 +1521,8 @@ def page_create():
                    format_func=lambda k: {"auto": t("auto"), "hi": "हिंदी", "en": "English", "hn": "Hinglish"}[k])
     with c2:
         st.write(""); st.toggle(t("gen_save"), False, key="gen_save_on")
+    bi = st.toggle(t("bilingual"), False, key="gen_bi")
+    img = st.file_uploader(t("img_chapter"), type=["png", "jpg", "jpeg", "webp"], key="gen_img")
     voice = None
     if hasattr(st, "audio_input"):
         aud = st.audio_input("🎙️", key="gen_aud", label_visibility="collapsed")
@@ -1469,10 +1536,10 @@ def page_create():
         n = a.slider(t("count"), 5, 30, 10)
         diff = b.selectbox(t("gen_diff"), ["mixed", "easy", "medium", "hard"], format_func=lambda k: t("d_" + k))
         sent = st.form_submit_button("✨ " + t("gen_go"), type="primary", use_container_width=True)
-    req = ss.pop("gen_req", None) or voice or (ch.strip() if sent and ch.strip() else None)
+    req = ss.pop("gen_req", None) or voice or (ch.strip() if sent and ch.strip() else ("📷" if sent and img else None))
     if req:
         with st.spinner(t("thinking")):
-            name, qs = gen_questions(req, n, diff)
+            name, qs = gen_questions("" if req == "📷" else req, n, diff, img if sent else None, bi)
         if not qs:
             ss.gen = None; st.error(t("gen_fail") + ("\n\n`" + ss.ai_err[:200] + "`" if ss.ai_err else ""))
         else:
@@ -1496,6 +1563,29 @@ def page_create():
         st.download_button(t("dl_pdf"), build_pdf(q["subject"], g["ch"], qs), f"{g['ch']}.pdf", "application/pdf", use_container_width=True)
 
 # ═══════════════════════ 12. LIBRARY / PDF STUDIO ═══════════════════════
+_DEV = re.compile(r"[\u0900-\u097F]"); _LAT = re.compile(r"[A-Za-z]{3,}")
+
+def make_bilingual(qs):
+    out = [dict(q) for q in qs]
+    todo = [i for i, q in enumerate(out) if not (_DEV.search(q["text"]) and _LAT.search(q["text"]))]
+    for s0 in range(0, len(todo), 8):
+        idx = todo[s0:s0 + 8]
+        payload = [dict(i=i, q=out[i]["text"], o=out[i]["options"]) for i in idx]
+        p = ("Make each exam question bilingual. If it is only English add the Hindi translation; if only Hindi add the English translation. "
+             'Return ONLY a JSON array of {"i":..,"q":..,"o":[..]} where q = "English text\nहिंदी पाठ" (English first, Hindi on the next line) and o = the options, '
+             'each as "English / हिंदी". Keep numbers, units, symbols, formulas and option order exactly; never change meaning. Input: ' + json.dumps(payload, ensure_ascii=False))
+        js = parse_json(ai_text(p, json_mode=True))
+        for o in js if isinstance(js, list) else []:
+            try:
+                i = int(o["i"])
+                if i in idx and str(o["q"]).strip():
+                    out[i]["text"] = str(o["q"]).strip()
+                    if isinstance(o.get("o"), list) and len(o["o"]) == len(out[i]["options"]):
+                        out[i]["options"] = [str(x).strip() for x in o["o"]]
+            except Exception:
+                continue
+    return out
+
 def page_library():
     ss = st.session_state
     page_head(t("lib_title"), t("lib_sub"))
@@ -1511,6 +1601,7 @@ def page_library():
     p_chap = c2.text_input(t("pdf_chapter"), value=(flt["topics"] or ["Introduction"])[0], key=f"lib_ch_{(flt['topics'] or ['x'])[0]}")
     t1, t2, t3 = st.columns(3)
     s_opts = t1.toggle(t("inc_opts"), True, key="lib_o"); s_key = t2.toggle(t("inc_key"), True, key="lib_k"); s_exp = t3.toggle(t("inc_expl"), False, key="lib_e")
+    bi_pdf = st.toggle(t("bilingual"), False, key="lib_bi")
     fs = st.slider(t("font_sz"), 8, 13, 10, key="lib_fs"); rnd = st.toggle(t("m_random"), False, key="lib_r")
     if st.button("⚡ " + t("gen_pdf"), type="primary", use_container_width=True, disabled=not HAVE_FPDF):
         if src == "book": rows = get_questions(ids=list(ss.bookmarks)) if ss.bookmarks else []
@@ -1521,6 +1612,7 @@ def page_library():
         if not rows: st.warning(t("no_match"))
         else:
             with st.spinner("PDF…"):
+                if bi_pdf: rows = make_bilingual(rows)
                 ss.lib_pdf = (build_pdf(p_sub, p_chap, rows, s_opts, s_key, s_exp, fs), f"{p_sub} - {p_chap}.pdf", len(rows))
                 ss.lib_rows = rows
     if ss.get("lib_pdf"):
@@ -1709,7 +1801,40 @@ def admin_manage():
         d = pd.DataFrame([{**q, "options": " | ".join(q["options"])} for q in rows])
         st.download_button("⬇ CSV", d.to_csv(index=False).encode("utf-8-sig"), "all_questions.csv", "text/csv")
 
-def admin_ai():
+def admin_fix():
+    st.markdown("---")
+    if st.button(t("run_fixdb"), use_container_width=True, key="fix_go"):
+        rows = sb().table("rrb_questions").select("id,question_text,options").range(0, 4999).execute().data or []
+        todo = [r for r in rows if len(parse_opts(r["options"])) < 2 or JUNK_RE.search(r["question_text"] or "")][:100]
+        bar, n = st.progress(0.0), 0
+        for i, r in enumerate(todo):
+            old = parse_opts(r["options"])
+            if len(old) >= 2:
+                txt = re.sub(r"\s+", " ", JUNK_RE.sub(" ", r["question_text"])).strip()
+                opts = [re.sub(r"\s+", " ", JUNK_RE.sub(" ", o)).strip() for o in old]
+            else:
+                txt, opts = clean_blob(r["question_text"])
+            if len(opts) >= 2:
+                try:
+                    sb().table("rrb_questions").update({"question_text": txt, "options": opts}).eq("id", r["id"]).execute(); n += 1
+                except Exception as ex:
+                    st.error(str(ex)); break
+            bar.progress((i + 1) / max(1, len(todo)))
+        st.cache_data.clear(); st.success(t("fixed_n", n=n))
+    if st.button(t("run_solve"), use_container_width=True, key="solve_go"):
+        rows = sb().table("rrb_questions").select(COLS).is_("correct_option", "null").limit(15).execute().data or []
+        items = [q for q in (norm_q(r) for r in rows) if len(q["options"]) >= 2]
+        p = ("Solve each exam MCQ carefully. Return ONLY a JSON array of {\"id\":..,\"answer\":\"A|B|C|D\",\"explanation\":\"max 40 words\"}. Input: "
+             + json.dumps([dict(id=q["id"], q=q["text"], opts=q["options"]) for q in items], ensure_ascii=False))
+        js, n = parse_json(ai_text(p, json_mode=True)), 0
+        for o in js if isinstance(js, list) else []:
+            try:
+                sb().table("rrb_questions").update({"correct_option": normc(o["answer"]), "explanation": "🤖 AI-solved: " + str(o.get("explanation", ""))}).eq("id", o["id"]).execute(); n += 1
+            except Exception:
+                pass
+        st.cache_data.clear(); st.success(t("fixed_n", n=n))
+
+def admin_ai_base():
     try:
         pend = sb().table("rrb_questions").select("id", count="exact").is_("embedding", "null").execute().count or 0
     except Exception as ex:
@@ -1770,6 +1895,9 @@ def admin_ai():
                                                     explanation=o.get("explanation"))).eq("id", o["id"]).execute(); n += 1
             except Exception: pass
         st.cache_data.clear(); st.success(f"{n} ✓")
+
+def admin_ai():
+    admin_ai_base(); admin_fix()
 
 def admin_add():
     with st.form("addq", clear_on_submit=True):
