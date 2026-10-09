@@ -1669,4 +1669,186 @@ def admin_ingest():
             else:
                 qs, kf, miss = parse_questions(extract_pages(f)), keys, []
             if miss: miss_all.append((f.name, miss))
-            for q i
+            for q in qs:
+                ans = q["correct"] or kf.get(q["q_no"])
+                sub, top = classify(q["text"]) if auto else ("General", "General")
+                o = q["options"] + [""] * (4 - len(q["options"]))
+                rows.append(dict(use=True, q_no=q["q_no"], shift_name=f.name.rsplit(".", 1)[0], subject=sub, topic=top, difficulty="medium",
+                                 question_text=q["text"], A=o[0], B=o[1], C=o[2], D=o[3], correct_option=ans, explanation=q["expl"]))
+        bar.progress(1.0)
+        ss.ing_df = pd.DataFrame(rows); ss.ing_missing = miss_all
+    for nm, miss in ss.get("ing_missing") or []:
+        st.warning(f"{nm}: " + t("missing_q", n=", ".join(map(str, miss[:50]))))
+    df = ss.get("ing_df")
+    if df is not None and len(df):
+        st.success(t("parsed_n", n=len(df)))
+        stat_grid([(int(df["correct_option"].notna().sum()), t("ans_letter")), (int((df["A"] != "").sum()), t("opt")), (len(df), t("q_text"))])
+        ed = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="ing_ed", column_config={
+            "use": st.column_config.CheckboxColumn("✓", width="small"),
+            "correct_option": st.column_config.SelectboxColumn(t("ans_letter"), options=list(LETTERS), width="small"),
+            "difficulty": st.column_config.SelectboxColumn(t("difficulty"), options=["easy", "medium", "hard"]),
+            "question_text": st.column_config.TextColumn(t("q_text"), width="large")})
+        if st.button("💾 " + t("save_db"), type="primary", use_container_width=True, key="ing_save"):
+            n = ingest_save(ed, exam, year, emb)
+            st.balloons(); st.success(t("inserted", n=n)); ss.ing_df = None
+    elif df is not None:
+        st.warning("0 questions detected — PDF scanned/image हो सकती है, या फ़ॉर्मेट अलग है। एक sample PDF भेजें ताकि parser tune हो सके।")
+
+def admin_manage():
+    df = meta(); db_error_box()
+    st.metric(t("total_q"), len(df))
+    if len(df):
+        st.dataframe(df.groupby(["subject", "shift_name"]).size().rename("n").reset_index(), use_container_width=True)
+        st.markdown(f"##### 🛑 {t('danger')}")
+        sh = st.selectbox(t("del_by"), uniq(df, "shift_name"), key="del_sh")
+        conf = st.text_input(t("type_del"), key="del_conf")
+        if st.button("🗑 " + t("del_by"), disabled=conf != "DELETE", key="del_go"):
+            sb().table("rrb_questions").delete().eq("shift_name", sh).execute(); st.cache_data.clear(); st.success(t("deleted")); st.rerun()
+    rows = get_questions(limit=5000)
+    if rows:
+        d = pd.DataFrame([{**q, "options": " | ".join(q["options"])} for q in rows])
+        st.download_button("⬇ CSV", d.to_csv(index=False).encode("utf-8-sig"), "all_questions.csv", "text/csv")
+
+def admin_ai():
+    try:
+        pend = sb().table("rrb_questions").select("id", count="exact").is_("embedding", "null").execute().count or 0
+    except Exception as ex:
+        st.error(str(ex)); return
+    st.info(t("pending_emb", n=pend))
+    if st.button(t("run_emb"), disabled=pend == 0, use_container_width=True, key="emb_go"):
+        rows = sb().table("rrb_questions").select("id,question_text,options").is_("embedding", "null").limit(40).execute().data or []
+        bar = st.progress(0.0)
+        for i in range(0, len(rows), 15):
+            ch = rows[i:i + 15]
+            try:
+                vecs = embed_texts([r["question_text"] + " " + " ".join(parse_opts(r["options"])) for r in ch])
+                for r, v in zip(ch, vecs): sb().table("rrb_questions").update({"embedding": v}).eq("id", r["id"]).execute()
+            except Exception as ex:
+                st.error(str(ex)); break
+            bar.progress(min(1.0, (i + 15) / len(rows))); time.sleep(0.4)
+        st.rerun()
+    bad = [q for q in get_questions(limit=1500) if is_broken(q["text"]) or any(is_broken(o) for o in q["options"])]
+    st.info(t("repair_n", n=len(bad)))
+    nb = st.slider("batches (×15)", 1, 20, 3, key="rep_n")
+    if st.button("🛠 " + t("repair_h"), disabled=not bad, use_container_width=True, key="rep_go"):
+        bar, done_n = st.progress(0.0), 0
+        for bi in range(nb):
+            ch = bad[bi * 15:(bi + 1) * 15]
+            if not ch: break
+            p = ("These exam questions were extracted from a PDF and the Hindi (Devanagari) text is garbled (matras in wrong place, stray marks). "
+                 "Restore the intended correct text. Do not change meaning, numbers or English parts. Return ONLY a JSON array of {id, question_text, options}.\n" +
+                 json.dumps([dict(id=q["id"], question_text=q["text"], options=q["options"]) for q in ch], ensure_ascii=False))
+            js = parse_json(ai_text(p, json_mode=True))
+            for o in js if isinstance(js, list) else []:
+                try:
+                    opts = [str(x) for x in o["options"]][:4]; txt = str(o["question_text"]).strip()
+                    sb().table("rrb_questions").update(dict(question_text=txt, options=opts, q_hash=qhash(txt, opts), embedding=None)).eq("id", o["id"]).execute(); done_n += 1
+                except Exception as ex:
+                    st.session_state.db_err = str(ex)
+            bar.progress((bi + 1) / nb); time.sleep(0.5)
+        st.cache_data.clear(); st.success(f"{done_n} ✓")
+    gen_rows = [q for q in get_questions(limit=1500) if q["subject"] == "General"]
+    if st.button(t("cls_local") + f" ({len(gen_rows)})", disabled=not gen_rows, use_container_width=True, key="cls_loc"):
+        n = 0
+        for q in gen_rows[:150]:
+            s, tp = classify(q["text"] + " " + " ".join(q["options"]))
+            if s != "General":
+                try: sb().table("rrb_questions").update(dict(subject=s, topic=tp)).eq("id", q["id"]).execute(); n += 1
+                except Exception: pass
+        st.cache_data.clear(); st.success(f"{n} ✓")
+    if st.button(t("run_cls"), use_container_width=True, key="cls_go"):
+        rows = sb().table("rrb_questions").select(COLS).is_("explanation", "null").limit(15).execute().data or []
+        items = [norm_q(r) for r in rows]
+        p = ("For each RRB/SSC JE exam question return a JSON array of objects {id, subject, topic, difficulty(easy|medium|hard), explanation(max 60 words, "
+             f"{lang_rule()}" + ")}. Use these subject names where they fit: Civil Engineering, Electrical Engineering, Mechanical Engineering, Mathematics, "
+             "Reasoning, General Science, General Awareness, Computer. Do NOT invent an answer; base the explanation on the stored correct option if present.\n" +
+             json.dumps([dict(id=q["id"], q=q["text"], opts=q["options"], correct=q["correct"]) for q in items], ensure_ascii=False))
+        js = parse_json(ai_text(p, json_mode=True)); n = 0
+        for o in js if isinstance(js, list) else []:
+            try:
+                sb().table("rrb_questions").update(dict(subject=o["subject"], topic=o["topic"], difficulty=o.get("difficulty", "medium"),
+                                                    explanation=o.get("explanation"))).eq("id", o["id"]).execute(); n += 1
+            except Exception: pass
+        st.cache_data.clear(); st.success(f"{n} ✓")
+
+def admin_add():
+    with st.form("addq", clear_on_submit=True):
+        tx = st.text_area(t("q_text"))
+        cs = st.columns(2); o = [cs[i % 2].text_input(f"{t('opt')} {LETTERS[i]}") for i in range(4)]
+        c1, c2, c3 = st.columns(3)
+        ans = c1.selectbox(t("ans_letter"), list(LETTERS)); sub = c2.text_input(t("subject"), "Civil Engineering"); top = c3.text_input(t("topic"), "General")
+        ex = st.text_area(t("explain"))
+        if st.form_submit_button(t("save"), type="primary") and tx.strip():
+            opts = [x for x in o if x.strip()]
+            sb().table("rrb_questions").upsert(dict(q_hash=qhash(tx, opts), question_text=tx.strip(), options=opts, correct_option=ans, subject=sub, topic=top,
+                                                 explanation=ex or None, exam="RRB JE", shift_name="manual"), on_conflict="q_hash", ignore_duplicates=True).execute()
+            st.cache_data.clear(); st.success(t("saved"))
+
+def admin_diag():
+    import streamlit
+    st.write(f"Streamlit **{streamlit.__version__}** · theme API: **{theme_type()}**")
+    st.write({"SUPABASE_URL": bool(SB_URL), "SUPABASE_KEY": bool(SB_KEY), "GEMINI_API_KEY": bool(G_KEY), "ADMIN_PIN": bool(secret("ADMIN_PIN"))})
+    st.write("Models:", _models(), "· working:", st.session_state.get("good_model"))
+    a, b = st.columns(2)
+    if a.button(t("test_db"), use_container_width=True, key="d_db"):
+        try: st.success(f"OK · rows: {sb().table('rrb_questions').select('id', count='exact').limit(1).execute().count}")
+        except Exception as ex: st.error(f"{type(ex).__name__}: {ex}")
+    if b.button(t("test_ai"), use_container_width=True, key="d_ai"):
+        r = ai_text("Reply with the single word OK.")
+        st.success(f"OK · {r}") if r else st.error(st.session_state.ai_err)
+    st.write("PDF fonts:", ensure_fonts() or "❌ not available", "· fpdf2:", HAVE_FPDF)
+    if st.session_state.ai_err: st.code(st.session_state.ai_err[:600])
+
+def tab_admin():
+    ss = st.session_state; pin = secret("ADMIN_PIN")
+    if pin and not ss.admin_ok:
+        p = st.text_input(t("admin_pin"), type="password", key="adm_pin")
+        if st.button(t("unlock"), key="adm_go"):
+            if str(p) == str(pin): ss.admin_ok = True; st.rerun()
+            else: st.error(t("bad_pin"))
+        return
+    if not pin: st.warning(t("no_pin_set"))
+    tabs = st.tabs([t("ingest"), t("manage"), t("ai_tools"), t("add_one"), t("diag")])
+    with tabs[0]: admin_ingest()
+    with tabs[1]: admin_manage()
+    with tabs[2]: admin_ai()
+    with tabs[3]: admin_add()
+    with tabs[4]: admin_diag()
+
+def page_more():
+    page_head(t("more"), "PYQ Master")
+    tabs = st.tabs([t("profile"), t("settings"), t("progress"), t("admin")])
+    with tabs[0]: tab_profile()
+    with tabs[1]: tab_settings()
+    with tabs[2]: tab_progress()
+    with tabs[3]: tab_admin()
+
+# ═══════════════════════ 14. APP SHELL ═══════════════════════
+PAGE_FN = dict(home=page_home, practice=page_practice, mock=page_mock, create=page_create, library=page_library, more=page_more)
+
+def set_lang(l):
+    st.session_state.cfg["ui_lang"] = l
+
+def main():
+    ss = st.session_state
+    if not (SB_URL and SB_KEY and G_KEY):
+        st.error(S["secrets_missing"][1] + "\n\n" + S["secrets_missing"][0]); st.stop()
+    if not ss.profile and not ss.get("_qp_done"):
+        ss["_qp_done"] = True
+        try:
+            u = st.query_params.get("u")
+            if u: load_profile(u)
+        except Exception: pass
+    if ss.nav not in PAGES: ss.nav = "home"
+    inject_css()
+    with st.container(key="langbar"):
+        for l, lab in (("hi", "हिं"), ("en", "EN"), ("hn", "Hn")):
+            with st.container(key=f"lang_{l}"):
+                st.button(lab, key=f"lb_{l}", on_click=set_lang, args=(l,))
+    with st.container(key="bottomnav"):
+        for pg in PAGES:
+            with st.container(key=f"nav_{pg}"):
+                st.button(t(pg), key=f"navb_{pg}", on_click=go, args=(pg,), use_container_width=True)
+    PAGE_FN[ss.nav]()
+
+main()
