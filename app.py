@@ -22,7 +22,7 @@ st.set_page_config(page_title="PYQ Master", page_icon="🎓", layout="centered",
                    initial_sidebar_state="collapsed")
 
 LETTERS = "ABCD"
-PAGES = ["home", "practice", "mock", "tutor", "library", "more"]
+PAGES = ["home", "practice", "mock", "create", "library", "more"]
 ACCENTS = {"blue": ("#0A84FF", "#5E5CE6"), "indigo": ("#5E5CE6", "#BF5AF2"), "purple": ("#BF5AF2", "#FF375F"),
            "pink": ("#FF375F", "#FF9F0A"), "orange": ("#FF9F0A", "#FF453A"), "green": ("#30D158", "#0A84FF"),
            "teal": ("#40C8E0", "#0A84FF")}
@@ -35,7 +35,7 @@ EMBED_MODELS = ["text-embedding-004", "gemini-embedding-001"]
 # ═══════════════════════ 1. LANGUAGE PACK  (hi, en, hn) ═══════════════════════
 S = {
  "home": ("होम", "Home", "Home"), "practice": ("अभ्यास", "Practice", "Practice"),
- "mock": ("मॉक", "Mock", "Mock"), "tutor": ("AI गुरु", "AI Tutor", "AI Guru"),
+ "mock": ("मॉक", "Mock", "Mock"), "create": ("बनाओ", "Create", "Banao"),
  "library": ("लाइब्रेरी", "Library", "Library"), "more": ("और", "More", "More"),
  "hello": ("नमस्ते", "Hello", "Namaste"), "gm": ("सुप्रभात", "Good morning", "Good morning"),
  "ga": ("शुभ दोपहर", "Good afternoon", "Good afternoon"), "ge": ("शुभ संध्या", "Good evening", "Good evening"),
@@ -171,6 +171,16 @@ S = {
  "total_q": ("कुल सवाल", "Total questions", "Total questions"), "test_ai": ("AI टेस्ट", "Test AI", "AI test"), "test_db": ("DB टेस्ट", "Test DB", "DB test"),
  "q_text": ("सवाल", "Question", "Question"), "opt": ("विकल्प", "Option", "Option"), "ans_letter": ("सही उत्तर", "Correct", "Correct"),
  "back": ("वापस", "Back", "Back"), "secrets_missing": ("Secrets में SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY डालें (Settings → Secrets)।", "Add SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY in Settings → Secrets.", "Secrets me SUPABASE_URL, SUPABASE_KEY, GEMINI_API_KEY daalo (Settings → Secrets)."),
+ "gen_title": ("प्रश्न बनाओ", "Make questions", "Questions banao"),
+ "gen_sub": ("कोई भी चैप्टर लिखें या बोलें — AI MCQ बना देगा।", "Type or say any chapter — AI makes MCQs.", "Koi bhi chapter likho ya bolo — AI MCQ bana dega."),
+ "chapter_ph": ("चैप्टर लिखें, जैसे: estimesion, बेंडिंग मोमेंट", "Chapter, e.g. estimesion, bending moment", "Chapter likho, jaise: estimesion, bending moment"),
+ "gen_go": ("प्रश्न बनाओ", "Generate", "Banao"), "gen_diff": ("कठिनाई", "Level", "Level"),
+ "d_mixed": ("मिक्स", "Mixed", "Mixed"), "d_easy": ("आसान", "Easy", "Easy"), "d_medium": ("मध्यम", "Medium", "Medium"), "d_hard": ("कठिन", "Hard", "Hard"),
+ "gen_save": ("बने सवाल डेटाबेस में भी सेव करें", "Also save generated questions to database", "Bane sawal database me bhi save karo"),
+ "gen_saved": ("{n} सवाल डेटाबेस में सेव हुए", "{n} questions saved to database", "{n} sawal database me save hue"),
+ "gen_fail": ("सवाल नहीं बन सके। चैप्टर का नाम बदलकर फिर कोशिश करें।", "Could not generate. Try rephrasing the chapter.", "Sawal nahi bane. Chapter ka naam badal ke try karo."),
+ "gen_note": ("⚠️ AI के बनाए उत्तर एक बार जाँच लें।", "⚠️ AI-made answers — please verify.", "⚠️ AI ke answers ek baar verify kar lo."),
+ "home_gen_ph": ("कोई भी चैप्टर लिखें → सवाल तैयार", "Type any chapter → get questions", "Koi bhi chapter likho → questions ready"),
  "sec_hint": ("सवाल", "Questions", "Questions"), "of": ("/", "/", "/"),
 }
 _LI = {"hi": 0, "en": 1, "hn": 2}
@@ -214,7 +224,7 @@ NAV_ICONS = [
  "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
  "<path d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'/><path d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'/>",
  "<circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/>",
- "<path d='M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z'/>",
+ "<path d='M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z'/><path d='M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z'/>",
  "<path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/>",
  "<line x1='4' y1='6' x2='20' y2='6'/><line x1='4' y1='12' x2='20' y2='12'/><line x1='4' y1='18' x2='20' y2='18'/>",
 ]
@@ -890,6 +900,11 @@ def greeting():
     h = now_ist().hour
     return t("gm") if h < 12 else t("ga") if h < 17 else t("ge") if h < 21 else t("gn")
 
+def home_gen():
+    v = st.session_state.get("hg_txt", "").strip()
+    if v:
+        st.session_state.gen_req = v; st.session_state.nav = "create"
+
 def page_home():
     ss = st.session_state
     name = (ss.profile or {}).get("name") or t("student")
@@ -907,13 +922,10 @@ def page_home():
     stat_grid([(len(df), t("qbank")), (f"🔥 {streak()}", t("streak")), (acc, t("accuracy")), (len(hist), t("mocks"))])
     if ss.mock and not ss.mock["done"]:
         st.button("⏱ " + t("resume_mock"), type="primary", use_container_width=True, on_click=go, args=("mock",))
-    st.markdown(f"##### {t('quick')}")
-    c1, c2 = st.columns(2)
-    c1.button("📘 " + t("q_practice"), use_container_width=True, on_click=go, args=("practice", "random"), key="h1")
-    c2.button("⏱ " + t("q_mock"), use_container_width=True, on_click=go, args=("mock",), key="h2")
-    c3, c4 = st.columns(2)
-    c3.button("🤖 " + t("q_tutor"), use_container_width=True, on_click=go, args=("tutor",), key="h3")
-    c4.button(f"🔁 {t('q_wrong')} ({len(ss.wrong)})", use_container_width=True, on_click=go, args=("practice", "wrong"), key="h4")
+    with st.form("homegen", clear_on_submit=True):
+        c1, c2 = st.columns([5, 1])
+        c1.text_input("c", key="hg_txt", placeholder=t("home_gen_ph"), label_visibility="collapsed")
+        c2.form_submit_button("✨", type="primary", use_container_width=True, on_click=home_gen)
     # question of the day
     pool = get_questions(limit=300) if len(df) else []
     if pool:
@@ -1235,47 +1247,8 @@ def page_mock():
             mk_finish(auto=True); st.rerun()
         mock_run(m)
 
-# ═══════════════════════ 11. AI TUTOR (fuzzy intent + RAG + voice + photo) ═══════════════════════
-GLOSSARY = ["plinth area", "carpet area", "estimation", "quantity surveying", "bill of quantities", "rate analysis", "specification",
- "bearing capacity", "consolidation", "permeability", "slump test", "water cement ratio", "curing", "bending moment", "shear force",
- "deflection", "moment of inertia", "young modulus", "poisson ratio", "theodolite", "levelling", "traversing", "contour", "chain surveying",
- "compass surveying", "hydraulics", "bernoulli", "manning formula", "reynolds number", "pelton wheel", "centrifugal pump", "transformer",
- "induction motor", "dc motor", "alternator", "kirchhoff law", "ohm law", "thevenin theorem", "norton theorem", "power factor", "three phase",
- "circuit breaker", "boiler", "turbine", "otto cycle", "diesel cycle", "carnot cycle", "refrigeration", "entropy", "enthalpy", "lathe machine",
- "milling", "welding", "heat treatment", "foundation", "retaining wall", "prestressed concrete", "reinforced concrete", "brick masonry", "mortar"]
-STOP = set("batao kya hota hai ka ki ke explain formula trick about what tell mujhe samjhao btao bataiye hain define meaning mean the is of and for in".split())
-
-def vocab_words():
-    w = set()
-    for g in GLOSSARY: w.update(g.split())
-    df = meta()
-    for tp in uniq(df, "topic"): w.update(re.findall(r"[a-z]{4,}", tp.lower()))
-    return w
-
-def local_understand(q):
-    vw = vocab_words(); toks, out = q.split(), []
-    for tk in toks:
-        lo = re.sub(r"[^a-z]", "", tk.lower())
-        if len(lo) >= 4 and lo not in vw and lo not in STOP:
-            m = difflib.get_close_matches(lo, list(vw), n=1, cutoff=0.78)
-            out.append(m[0] if m else tk)
-        else:
-            out.append(tk)
-    fixed = " ".join(out); low = fixed.lower()
-    kws = [g for g in GLOSSARY if g in low] or [w for w in re.findall(r"[a-z]{4,}", low) if w not in STOP][:3]
-    return dict(corrected=fixed, intent="explain", keywords=kws[:4])
-
-def understand(q):
-    p = ('Return ONLY JSON: {"corrected": "message with spelling fixed, same language", "intent": "explain|find_questions|formula|solve|quiz|chat", '
-         '"keywords": ["2-4 English technical search terms"]}. The message is from an RRB/SSC JE exam student and may contain typos, broken Hindi '
-         f'or Hinglish. Message: "{q}"')
-    js = parse_json(ai_text(p, json_mode=True))
-    if isinstance(js, dict) and js.get("corrected"):
-        js["keywords"] = [str(k) for k in (js.get("keywords") or [])][:4]
-        return js
-    return local_understand(q)
-
-def retrieve(text, kws, k=5):
+# ═══════════════════════ 11. CREATE: any chapter → MCQs ═══════════════════════
+def retrieve(text, kws, k=3):
     out, seen = [], set()
     def add(rows):
         for r in rows or []:
@@ -1286,81 +1259,109 @@ def retrieve(text, kws, k=5):
         add(sb().rpc("match_questions", {"query_embedding": v, "match_count": k, "filter_subject": None}).execute().data)
     except Exception:
         pass
-    for kw in kws[:3]:
-        try:
-            add(sb().table("rrb_questions").select(COLS).ilike("question_text", f"%{kw}%").limit(4).execute().data)
-        except Exception:
-            break
-    return out[:k + 2]
+    if len(out) < k:
+        try: add(sb().table("rrb_questions").select(COLS).ilike("question_text", f"%{text[:30]}%").limit(k).execute().data)
+        except Exception: pass
+    return out[:k]
 
 def transcribe(audio):
-    p = "Transcribe this speech exactly (Hindi/English/Hinglish). Return only the text, in Roman script if it is Hinglish."
+    p = "Transcribe this speech exactly (Hindi/English/Hinglish). Return only the text."
     return ai_text([types.Part.from_bytes(data=audio.getvalue(), mime_type="audio/wav"), p])
 
-def tutor_reply(orig, image=None):
+def gen_questions(chapter, n, diff):
+    ex = retrieve(chapter, [chapter])
+    ctx = "\n".join(f"- {q['text']}" for q in ex) or "(none)"
+    out, seen, tries, name = [], set(), 0, chapter
+    lvl = "a mix of easy, medium and hard" if diff == "mixed" else diff
+    while len(out) < n and tries < 4:
+        tries += 1; k = min(15, n - len(out))
+        p = (f"You are an expert RRB JE / SSC JE paper setter. The student typed this chapter/topic (may have typos, Hindi or Hinglish): \"{chapter}\".\n"
+             f"Create {k} NEW exam-standard MCQs on it, level: {lvl}. {lang_rule().replace('Reply', 'Write the questions')}\n"
+             f"Style examples from our PYQ bank:\n{ctx}\n"
+             'Return ONLY JSON: {"chapter": "corrected chapter name in English", "questions": [{"question": "...", "options": ["...", "...", "...", "..."], '
+             '"answer": "A|B|C|D", "explanation": "max 50 words", "difficulty": "easy|medium|hard"}]}. Exactly 4 options, one correct, '
+             "no 'all of the above' unless needed, and do not repeat earlier questions: " + " || ".join(q["text"][:60] for q in out[-10:]))
+        js = parse_json(ai_text(p, json_mode=True))
+        if isinstance(js, dict):
+            name = str(js.get("chapter") or name)[:80]; items = js.get("questions") or []
+        else:
+            items = js if isinstance(js, list) else []
+        for o in items:
+            try:
+                txt, opts, ans = str(o["question"]).strip(), [str(x).strip() for x in o["options"]][:4], normc(o["answer"])
+            except Exception:
+                continue
+            h = qhash(txt, opts)
+            if len(opts) == 4 and ans and txt and h not in seen:
+                seen.add(h)
+                out.append(dict(id=None, q_no=None, text=txt, options=opts, correct=ans, expl=str(o.get("explanation", "")).strip(),
+                                subject=classify(name + " " + txt)[0], topic=name, difficulty=str(o.get("difficulty", "medium")).lower(),
+                                year=None, shift="AI: " + name, exam="AI Generated"))
+    return name, out[:n]
+
+def gen_save(qs):
+    recs = [dict(q_hash=qhash(q["text"], q["options"]), question_text=q["text"], options=q["options"], correct_option=q["correct"],
+                 explanation=q["expl"] or None, subject=q["subject"], topic=q["topic"], difficulty=q["difficulty"], exam="AI Generated",
+                 year=now_ist().year, shift_name=q["shift"]) for q in qs]
+    try:
+        for r, v in zip(recs, embed_texts([r["question_text"] + " " + " ".join(r["options"]) for r in recs])): r["embedding"] = v
+    except Exception:
+        pass
+    try:
+        sb().table("rrb_questions").upsert(recs, on_conflict="q_hash", ignore_duplicates=True).execute()
+        st.cache_data.clear(); return len(recs)
+    except Exception as ex:
+        st.session_state.db_err = f"{type(ex).__name__}: {ex}"; return 0
+
+def gen_pick(i, key):
+    st.session_state.gen["ans"][i] = st.session_state[key]
+
+def page_create():
     ss = st.session_state
-    with st.spinner(t("thinking")):
-        u = understand(orig)
-        pyqs = retrieve(u["corrected"], u.get("keywords", []))
-    ctx = "\n".join(f"- [{q['subject']}/{q['topic']}] {q['text']} | " + " ".join(f"{LETTERS[i]}.{o}" for i, o in enumerate(q["options"])) +
-                    f" | Ans: {q['correct'] or '?'}" for q in pyqs) or "(none)"
-    hist = "\n".join(f"{m['role']}: {m['content'][:200]}" for m in ss.chat[-4:])
-    prompt = (f'You are "AI Guru", an expert tutor for RRB JE / SSC JE (Civil, Electrical, Mechanical + Maths, Reasoning, GS).\n{lang_rule()}\n'
-              f'Recent chat:\n{hist}\n\nStudent wrote: "{orig}"\nInterpreted as: "{u["corrected"]}" (intent: {u.get("intent")})\n'
-              f'Related PYQs from our database (use only if relevant):\n{ctx}\n\n'
-              "Answer compactly (under 220 words, simple markdown): 1) direct answer/definition 2) formula or steps 3) one quick exam trick "
-              "4) one practice MCQ with its answer at the end.")
-    contents = [types.Part.from_bytes(data=image.getvalue(), mime_type=image.type or "image/png"), prompt] if image else prompt
-    if u["corrected"].strip().lower() != orig.strip().lower():
-        st.caption(f'💡 {t("understood")}: **{u["corrected"]}**')
-    text = st.write_stream(ai_stream(contents))
-    return text, pyqs
-
-def show_pyqs(pyqs):
-    if not pyqs: return
-    with st.expander(f"📚 {t('related_pyq')} ({len(pyqs)})"):
-        for q in pyqs:
-            st.markdown(f'<div class="card"><span class="chip">{e(q["topic"])}</span><div class="qtext" style="font-size:.95rem">{e(q["text"])}</div></div>', unsafe_allow_html=True)
-            for k, o in enumerate(q["options"]):
-                st.markdown(f"**{LETTERS[k]}.** {md_safe(o)}" + (" ✅" if LETTERS[k] == q["correct"] else ""))
-
-def set_pending(x):
-    st.session_state.pending_q = x
-
-def page_tutor():
-    ss = st.session_state
-    page_head(t("tutor_title"), t("tutor_sub"))
-    cfg_widget("selectbox", "ai_lang", t("ai_lang"), options=["auto", "hi", "en", "hn"],
-               format_func=lambda k: {"auto": t("auto"), "hi": "हिंदी", "en": "English", "hn": "Hinglish"}[k])
-    if not ss.chat:
-        c = st.columns(2)
-        for i, k in enumerate(["sugg1", "sugg2", "sugg3", "sugg4"]):
-            c[i % 2].button(t(k), key=f"sg{i}", use_container_width=True, on_click=set_pending, args=(t(k),))
-    for m in ss.chat:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"]); show_pyqs(m.get("pyqs"))
-    img, voice_text = None, None
-    with st.expander(f'{t("voice")} / {t("photo")}'):
-        if hasattr(st, "audio_input"):
-            aud = st.audio_input(t("voice"), key="tut_aud")
-            if aud and st.button(t("send") + " 🎙️", key="tut_va"):
-                voice_text = transcribe(aud)
-        img = st.file_uploader(t("photo"), type=["png", "jpg", "jpeg", "webp"], key="tut_img")
-    with st.form("ask", clear_on_submit=True):
-        c1, c2 = st.columns([5, 1])
-        typed = c1.text_input("q", placeholder=t("ask_ph"), label_visibility="collapsed")
-        sent = c2.form_submit_button("➤", type="primary", use_container_width=True)
-    q = ss.pop("pending_q", None) or voice_text or (typed.strip() if sent and typed.strip() else None)
-    if not q and sent and img: q = "Solve this question step by step."
-    if q:
-        ss.chat.append({"role": "user", "content": q})
-        with st.chat_message("user"): st.markdown(q)
-        with st.chat_message("assistant"):
-            text, pyqs = tutor_reply(q, img if (sent or voice_text) else None)
-            show_pyqs(pyqs)
-        ss.chat.append({"role": "assistant", "content": text, "pyqs": pyqs})
-    if ss.chat:
-        st.button(t("clear_chat"), on_click=lambda: st.session_state.update(chat=[]), key="clrchat")
+    page_head(t("gen_title"), t("gen_sub"))
+    c1, c2 = st.columns(2)
+    with c1:
+        cfg_widget("selectbox", "ai_lang", t("ai_lang"), options=["auto", "hi", "en", "hn"],
+                   format_func=lambda k: {"auto": t("auto"), "hi": "हिंदी", "en": "English", "hn": "Hinglish"}[k])
+    with c2:
+        st.write(""); st.toggle(t("gen_save"), False, key="gen_save_on")
+    voice = None
+    if hasattr(st, "audio_input"):
+        aud = st.audio_input("🎙️", key="gen_aud", label_visibility="collapsed")
+        if aud:
+            sig = getattr(aud, "file_id", None) or len(aud.getvalue())
+            if ss.get("last_aud") != sig:
+                ss.last_aud = sig; voice = transcribe(aud)
+    with st.form("gen"):
+        ch = st.text_input("c", placeholder=t("chapter_ph"), label_visibility="collapsed")
+        a, b = st.columns(2)
+        n = a.slider(t("count"), 5, 30, 10)
+        diff = b.selectbox(t("gen_diff"), ["mixed", "easy", "medium", "hard"], format_func=lambda k: t("d_" + k))
+        sent = st.form_submit_button("✨ " + t("gen_go"), type="primary", use_container_width=True)
+    req = ss.pop("gen_req", None) or voice or (ch.strip() if sent and ch.strip() else None)
+    if req:
+        with st.spinner(t("thinking")):
+            name, qs = gen_questions(req, n, diff)
+        if not qs:
+            ss.gen = None; st.error(t("gen_fail") + ("\n\n`" + ss.ai_err[:200] + "`" if ss.ai_err else ""))
+        else:
+            ss.gen = dict(ch=name, qs=qs, ans={}, gid=int(time.time()))
+            if ss.get("gen_save_on"): st.toast(t("gen_saved", n=gen_save(qs)))
+    g = ss.get("gen")
+    if not g: return
+    qs, ok = g["qs"], sum(1 for i, q in enumerate(g["qs"]) if g["ans"].get(i) == q["correct"])
+    st.markdown(f'<span class="chip">{e(g["ch"])}</span><span class="chip g">{ok}/{len(g["ans"])}</span><span class="chip n">{len(qs)} Q</span>', unsafe_allow_html=True)
+    st.caption(t("gen_note"))
+    for i, q in enumerate(qs):
+        q_card(q, head=f'<div class="sub" style="margin-bottom:6px">Q {i+1}</div>')
+        key = f"g{g['gid']}_{i}"
+        a = opts_radio(q, key, current=g["ans"].get(i), ckey=f"opts_g{i}", on_change=gen_pick, args=(i, key))
+        if a:
+            good = a == q["correct"]
+            st.markdown(f'<div class="banner {"ok" if good else "bad"}">{t("correct") if good else t("wrong") + " · " + t("right_ans") + ": " + q["correct"]}</div>', unsafe_allow_html=True)
+            if q["expl"]: st.info(q["expl"])
+    if HAVE_FPDF:
+        st.download_button(t("dl_pdf"), build_pdf(q["subject"], g["ch"], qs), f"{g['ch']}.pdf", "application/pdf", use_container_width=True)
 
 # ═══════════════════════ 12. LIBRARY / PDF STUDIO ═══════════════════════
 def page_library():
@@ -1652,7 +1653,7 @@ def page_more():
     with tabs[3]: tab_admin()
 
 # ═══════════════════════ 14. APP SHELL ═══════════════════════
-PAGE_FN = dict(home=page_home, practice=page_practice, mock=page_mock, tutor=page_tutor, library=page_library, more=page_more)
+PAGE_FN = dict(home=page_home, practice=page_practice, mock=page_mock, create=page_create, library=page_library, more=page_more)
 
 def set_ui_lang():
     st.session_state.cfg["ui_lang"] = st.session_state["w_ui_lang_q"]
