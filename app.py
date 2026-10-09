@@ -23,10 +23,10 @@ st.set_page_config(page_title="PYQ Master", page_icon="🎓", layout="centered",
 
 LETTERS = "ABCD"
 PAGES = ["home", "practice", "mock", "create", "library", "more"]
-ACCENTS = {"blue": ("#0A84FF", "#5E5CE6"), "indigo": ("#5E5CE6", "#BF5AF2"), "purple": ("#BF5AF2", "#FF375F"),
+ACCENTS = {"violet": ("#7B3FE4", "#5AC8FA"), "blue": ("#0A84FF", "#5E5CE6"), "indigo": ("#5E5CE6", "#BF5AF2"), "purple": ("#BF5AF2", "#FF375F"),
            "pink": ("#FF375F", "#FF9F0A"), "orange": ("#FF9F0A", "#FF453A"), "green": ("#30D158", "#0A84FF"),
            "teal": ("#40C8E0", "#0A84FF")}
-DEFAULTS = dict(ui_lang="hn", ai_lang="auto", accent="blue", font_scale=100, radius="round", glass=True,
+DEFAULTS = dict(ui_lang="hn", ai_lang="auto", accent="violet", font_scale=100, radius="round", glass=True,
                 amoled=False, pos_mark=1.0, neg_mark=0.33, default_minutes=90, shuffle_q=True,
                 shuffle_opts=False, instant=True, daily_goal=20, confirm_submit=True, ai_explain_auto=False)
 DEFAULT_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
@@ -181,6 +181,18 @@ S = {
  "gen_fail": ("सवाल नहीं बन सके। चैप्टर का नाम बदलकर फिर कोशिश करें।", "Could not generate. Try rephrasing the chapter.", "Sawal nahi bane. Chapter ka naam badal ke try karo."),
  "gen_note": ("⚠️ AI के बनाए उत्तर एक बार जाँच लें।", "⚠️ AI-made answers — please verify.", "⚠️ AI ke answers ek baar verify kar lo."),
  "home_gen_ph": ("कोई भी चैप्टर लिखें → सवाल तैयार", "Type any chapter → get questions", "Koi bhi chapter likho → questions ready"),
+ "welcome": ("स्वागत आपका", "Welcome", "Swagat aapka"), "today_prog": ("आज की प्रगति", "TODAY'S PROGRESS", "AAJ KI PROGRESS"),
+ "complete": ("पूरा", "complete", "complete"), "tasks_motion": ("लगे रहिए, आप बढ़िया कर रहे हैं!", "Keep pushing!", "Lage raho, badhiya chal raha hai!"),
+ "method": ("पढ़ने का तरीका", "Reading method", "Padhne ka tareeka"),
+ "m_ai": ("🤖 AI (सटीक, हिंदी-सुरक्षित)", "🤖 AI (accurate, Hindi-safe)", "🤖 AI (accurate, Hindi-safe)"),
+ "m_fast": ("⚡ तेज़ (regex)", "⚡ Fast (regex)", "⚡ Fast (regex)"),
+ "extracting": ("AI पन्ने पढ़ रहा है…", "AI is reading pages…", "AI pages padh raha hai…"),
+ "repair_h": ("टूटी हिंदी सुधारें (AI)", "Repair broken Hindi (AI)", "Tooti Hindi sudharo (AI)"),
+ "repair_n": ("टूटे हुए सवाल: {n}", "Broken questions: {n}", "Toote hue questions: {n}"),
+ "cls_local": ("'General' सवालों का विषय तय करें", "Classify 'General' questions", "'General' questions ka subject tay karo"),
+ "parse_mode": ("पार्सिंग तरीका", "Parsing method", "Parsing method"), "pm_ai": ("AI Vision (सबसे सही)", "AI Vision (most accurate)", "AI Vision (sabse sahi)"),
+ "pm_text": ("टेक्स्ट (तेज़, हिंदी गड़बड़ हो सकती है)", "Text (fast, Hindi may break)", "Text (fast, Hindi bigad sakti hai)"),
+ "missing_q": ("छूटे प्रश्न नंबर: {n}", "Missing question numbers: {n}", "Miss hue question numbers: {n}"),
  "sec_hint": ("सवाल", "Questions", "Questions"), "of": ("/", "/", "/"),
 }
 _LI = {"hi": 0, "en": 1, "hn": 2}
@@ -240,17 +252,17 @@ CSS = """
 .stApp p,.stApp label,.stApp li{font-size:calc(1rem*var(--fs))}
 header[data-testid="stHeader"]{background:transparent!important}
 [data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],.stAppDeployButton,[data-testid="stDeployButton"],footer{display:none!important}
-.block-container{position:relative;max-width:760px!important;padding:2.2rem 1rem 8rem!important}
+.block-container{position:relative;max-width:760px!important;padding:3.2rem 1rem 8.5rem!important}
 h1,h2,h3{letter-spacing:-.02em;font-weight:700}
 .apptitle{font-size:1.9rem;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:0}
 .apptitle small{display:block;font-size:.8rem;font-weight:500;color:var(--sub);letter-spacing:0;margin-top:2px}
 .card{background:var(--card);backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);
  border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin:0 0 12px}
-.hero{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-radius:calc(var(--r) + 6px);padding:20px;margin:0 0 14px;
+.hero{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-radius:28px;padding:22px 20px;margin:0 0 14px;
  display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 14px 34px color-mix(in srgb,var(--acc) 35%,transparent)}
 .hero h2{margin:0;font-size:1.45rem;color:#fff}.hero p{margin:4px 0 0;color:rgba(255,255,255,.88);font-size:.92rem}
 .ring{--p:0;width:86px;height:86px;border-radius:50%;flex:none;background:conic-gradient(#fff calc(var(--p)*1%),rgba(255,255,255,.28) 0);display:grid;place-items:center}
-.ring>div{width:68px;height:68px;border-radius:50%;background:var(--acc2);display:grid;place-items:center;font-weight:800;font-size:1.05rem;color:#fff}
+.ring>div{width:68px;height:68px;border-radius:50%;background:rgba(20,20,40,.35);display:grid;place-items:center;font-weight:800;font-size:1.05rem;color:#fff}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px;margin-bottom:12px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;backdrop-filter:blur(var(--blur))}
 .stat b{display:block;font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1.15}.stat span{font-size:.76rem;color:var(--sub);font-weight:500}
@@ -280,28 +292,22 @@ h1,h2,h3{letter-spacing:-.02em;font-weight:700}
 .stTabs [data-baseweb="tab-highlight"],.stTabs [data-baseweb="tab-border"]{display:none}
 [data-testid="stExpander"]{border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
 [data-testid="stMetric"]{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
-[class*="st-key-opts"] [role="radiogroup"]{gap:10px}
-[class*="st-key-opts"] label[data-baseweb="radio"]{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:13px 16px;width:100%;margin:0;transition:all .15s}
-[class*="st-key-opts"] label[data-baseweb="radio"]>div:first-child{display:none}
-[class*="st-key-opts"] label[data-baseweb="radio"]:has(input:checked){border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent)}
-[class*="st-key-opts"] label[data-baseweb="radio"]:active{transform:scale(.985)}
-.st-key-langbar{position:absolute;top:-6px;right:0;width:auto}
-.st-key-langbar [role="radiogroup"]{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px;gap:0;flex-wrap:nowrap}
-.st-key-langbar label[data-baseweb="radio"]{padding:3px 10px;margin:0;border-radius:999px}
-.st-key-langbar label[data-baseweb="radio"]>div:first-child{display:none}
-.st-key-langbar label[data-baseweb="radio"] p{font-size:.78rem!important;font-weight:700}
-.st-key-langbar label[data-baseweb="radio"]:has(input:checked){background:var(--acc)}
-.st-key-langbar label[data-baseweb="radio"]:has(input:checked) p{color:#fff}
-.st-key-bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:999;padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px));
- background:var(--navbg);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-top:1px solid var(--line)}
-.st-key-bottomnav [role="radiogroup"]{display:flex;justify-content:space-around;gap:0;max-width:640px;margin:0 auto;flex-wrap:nowrap}
-.st-key-bottomnav label[data-baseweb="radio"]{flex-direction:column;align-items:center;gap:2px;padding:4px 6px;margin:0;border-radius:12px;min-width:50px;flex:1}
-.st-key-bottomnav label[data-baseweb="radio"]>div:first-child{display:none}
-.st-key-bottomnav label[data-baseweb="radio"] p{font-size:.64rem!important;font-weight:600;color:var(--sub);margin:0;white-space:nowrap}
-.st-key-bottomnav label[data-baseweb="radio"]::before{content:'';width:25px;height:25px;background:var(--sub);
- -webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;transition:background .15s,transform .15s}
-.st-key-bottomnav label[data-baseweb="radio"]:has(input:checked)::before{background:var(--acc);transform:translateY(-1px) scale(1.08)}
-.st-key-bottomnav label[data-baseweb="radio"]:has(input:checked) p{color:var(--acc)}
+[class*="st-key-opt_"] button{display:flex!important;justify-content:flex-start!important;text-align:left;border-radius:var(--r)!important;padding:.85rem 1.1rem!important;
+ min-height:3.1rem;height:auto!important;background:var(--card)!important;border:1.5px solid var(--line)!important;width:100%;box-shadow:none!important}
+[class*="st-key-opt_"] button p{text-align:left;margin:0;white-space:normal;line-height:1.45}
+.st-key-langbar{display:flex!important;flex-direction:row!important;justify-content:flex-end;align-items:center;gap:4px!important;margin:-.4rem 0 .6rem}
+.st-key-langbar>div{width:auto!important;flex:0 0 auto!important}
+.st-key-langbar button{padding:.15rem .75rem!important;min-height:0!important;font-size:.78rem;font-weight:700}
+.st-key-bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:999;width:calc(100% - 24px);max-width:640px;
+ display:flex!important;flex-direction:row!important;gap:2px!important;padding:6px;border-radius:30px;background:var(--navbg);
+ backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--line);box-shadow:0 12px 34px rgba(0,0,0,.35)}
+.st-key-bottomnav>div{flex:1 1 0!important;min-width:0!important;width:auto!important}
+.st-key-bottomnav button{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none!important;background:transparent!important;
+ border-radius:24px!important;padding:.5rem 0 .4rem!important;min-height:0!important;box-shadow:none!important;width:100%;color:var(--sub)!important}
+.st-key-bottomnav button p{font-size:.62rem!important;font-weight:600;margin:0;white-space:nowrap}
+.st-key-bottomnav button::before{content:'';display:block;width:24px;height:24px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.pill{display:inline-block;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.2);font-size:.7rem;font-weight:700;letter-spacing:.06em;color:#fff;margin:0 8px 8px 0}
+.pill.gold{background:rgba(255,184,0,.2);border-color:rgba(255,184,0,.5)}
 __NAVICONS__
 .st-key-timerbar{position:sticky;top:.5rem;z-index:50}
 @media (max-width:640px){.block-container{padding-left:.8rem!important;padding-right:.8rem!important}.hero h2{font-size:1.25rem}}
@@ -320,13 +326,14 @@ def inject_css():
         bg = "#F2F2F7"
         pal = dict(CARD="rgba(255,255,255,.78)" if cfg("glass") else "#FFFFFF", TEXT="#1C1C1E", SUB="#6E6E73",
                    LINE="rgba(0,0,0,.08)", NAV="rgba(249,249,252,.85)")
-    nav_icons = "".join(f'.st-key-bottomnav label[data-baseweb="radio"]:nth-of-type({i+1}){{--ic:{_icon(s)}}}'
-                        for i, s in enumerate(NAV_ICONS))
-    nav_icons = nav_icons.replace("stroke-width='2'", "stroke-width='2'")
+    ss = st.session_state
+    nav_icons = "".join(f'.st-key-nav_{pg}{{--ic:{_icon(s)}}}' for pg, s in zip(PAGES, NAV_ICONS))
+    nav_icons += f'.st-key-nav_{ss.get("nav", "home")} button{{background:color-mix(in srgb,var(--acc) 24%,transparent)!important;color:var(--acc)!important}}'
+    nav_icons += f'.st-key-lang_{cfg("ui_lang")} button{{background:var(--acc)!important;color:#fff!important;border-color:transparent!important}}'
     css = (CSS.replace("__ACC__", a1).replace("__ACC2__", a2).replace("__BG__", bg)
            .replace("__CARD__", pal["CARD"]).replace("__TEXT__", pal["TEXT"]).replace("__SUB__", pal["SUB"])
            .replace("__LINE__", pal["LINE"]).replace("__NAV__", pal["NAV"])
-           .replace("__R__", "20" if cfg("radius") == "round" else "8").replace("__BLUR__", "22" if cfg("glass") else "0")
+           .replace("__R__", "24" if cfg("radius") == "round" else "8").replace("__BLUR__", "22" if cfg("glass") else "0")
            .replace("__FS__", str(cfg("font_scale") / 100)).replace("__NAVICONS__", nav_icons))
     st.markdown(css, unsafe_allow_html=True)
 
@@ -714,9 +721,56 @@ def parse_questions(pages):
         opts = [o for o in opts if o][:4]
         ok = len(stem) >= 8 and (len(opts) >= 2 or "?" in stem or "_" in stem or len(stem) >= 30)
         if ok:
-            out.append(dict(q_no=c["q_no"], text=re.sub(r"\s+", " ", stem), options=opts, correct=c["ans"],
+            out.append(dict(q_no=c["q_no"], text=fix_devanagari(re.sub(r"\s+", " ", stem)), options=[fix_devanagari(o) for o in opts], correct=c["ans"],
                             expl=" ".join(c["exp"]).strip()))
     return out
+
+
+VISION_PROMPT = ("You are digitising an Indian competitive-exam question paper from page images. Extract EVERY multiple-choice question visible, exactly as printed - "
+ "never skip, shorten or paraphrase any line. If a question is bilingual keep BOTH languages (Hindi first, then English) in the question and in each option, as printed. "
+ "Keep numbers, codes, letter-number sequences, symbols and units exactly. Ignore headers, footers, watermarks, page numbers and general instructions. "
+ "If a question has a figure/diagram that cannot be written as text, put [Figure: short description] where it appears. If a question is cut at a page edge, include what is visible. "
+ "Give up to 4 options in order A-D (text only, without the A/B/C/D or 1/2/3/4 label). Set answer ONLY if the page itself shows the correct option (answer key / tick / 'Correct'), else null - never guess. "
+ 'If an answer-key table is on these pages also return it. Return ONLY JSON: {"questions":[{"q_no":1,"question":"...","options":["...","...","...","..."],"answer":null}],"answer_key":{"1":"B"}}')
+
+def render_pages(f, dpi=135):
+    f.seek(0); imgs = []
+    with pdfplumber.open(f) as pdf:
+        for pg in pdf.pages:
+            buf = io.BytesIO()
+            pg.to_image(resolution=dpi).original.convert("RGB").save(buf, "JPEG", quality=82)
+            imgs.append(buf.getvalue())
+    return imgs
+
+def parse_pdf_vision(f, progress=None, size=3, step=2):
+    imgs = render_pages(f); n = len(imgs); best, keys, i = {}, {}, 0
+    while True:
+        chunk = imgs[i:i + size]
+        parts = [types.Part.from_bytes(data=b, mime_type="image/jpeg") for b in chunk] + [VISION_PROMPT]
+        js = parse_json(ai_text(parts, json_mode=True))
+        if js is None:
+            time.sleep(2); js = parse_json(ai_text(parts, json_mode=True))
+        if isinstance(js, list): js = {"questions": js}
+        if isinstance(js, dict):
+            for k, v in (js.get("answer_key") or {}).items():
+                try: keys[int(k)] = normc(v)
+                except Exception: pass
+            for o in js.get("questions") or []:
+                try:
+                    no = int(o["q_no"]); txt = re.sub(r"\s+", " ", str(o["question"])).strip()
+                    opts = [re.sub(r"\s+", " ", str(x)).strip() for x in (o.get("options") or []) if str(x).strip()][:4]
+                except Exception:
+                    continue
+                if not txt: continue
+                cand = dict(q_no=no, text=txt, options=opts, correct=normc(o.get("answer")), expl="")
+                old = best.get(no)
+                if not old or (len(opts), len(txt)) > (len(old["options"]), len(old["text"])): best[no] = cand
+        if progress: progress(min(1.0, (i + size) / max(1, n)))
+        if i + size >= n: break
+        i += step; time.sleep(0.5)
+    qs = [best[k] for k in sorted(best)]
+    top = max(best) if best else 0
+    return qs, keys, [k for k in range(1, top + 1) if k not in best]
 
 def parse_answer_key(text):
     keys = {}
@@ -762,8 +816,65 @@ def classify(text):
             best, score = key, sc
     return best
 
+DEVC = "\u0915-\u0939\u0958-\u095F"
+
+def fix_devanagari(s):
+    s = (s or "").replace("\u25cc", "")
+    return re.sub(r"(?<![\u0900-\u097F])\u093F((?:[%s]\u094D)*[%s])" % (DEVC, DEVC), "\\1\u093F", s)
+
+def is_broken(s):
+    return bool(re.search(r"\u25cc|(?:^|[\s(\[\-,.;:?])[\u0900-\u0903\u093A-\u094F\u0951-\u0957]", s or ""))
+
 def qhash(text, opts):
     return hashlib.sha1(re.sub(r"[^a-z0-9\u0900-\u097f]", "", (text + "".join(opts)).lower()).encode()).hexdigest()
+
+# ── AI extraction: Gemini reads the PDF pages itself (fixes broken Hindi, skipped lines) ──
+EXTRACT_PROMPT = ("Extract EVERY multiple-choice question from these exam-paper pages. Do not skip any question, do not merge questions. "
+    "If a question is bilingual, keep both languages in question_text (English first, then ' / ', then Hindi). Write Hindi correctly in Devanagari "
+    "(fix any garbled characters). Options: exactly the option texts without letters, in order A,B,C,D. If the correct answer is visible "
+    "(answer key, tick, 'Ans', 'Correct Option') give it as A/B/C/D, otherwise null - never guess. q_no = number printed in the paper. "
+    "Also give subject (Civil Engineering, Electrical Engineering, Mechanical Engineering, Mathematics, Reasoning, General Science, General Awareness, "
+    "Computer or General), topic (short English chapter name) and difficulty (easy|medium|hard). explanation only if printed, else null. "
+    'Return ONLY a JSON array: [{"q_no":1,"question_text":"...","options":["...","...","...","..."],"answer":"B","subject":"...","topic":"...","difficulty":"medium","explanation":null}]')
+
+def split_pdf_chunks(raw, per=3, overlap=1):
+    try:
+        from pypdf import PdfReader, PdfWriter
+    except Exception:
+        return [raw]
+    rd = PdfReader(io.BytesIO(raw)); n = len(rd.pages); out, i = [], 0
+    while i < n:
+        w = PdfWriter()
+        for k in range(i, min(n, i + per)): w.add_page(rd.pages[k])
+        b = io.BytesIO(); w.write(b); out.append(b.getvalue())
+        if i + per >= n: break
+        i += per - overlap
+    return out
+
+def ai_extract_pdf(raw, bar=None):
+    chunks, res, seen_h, seen_n = split_pdf_chunks(raw), [], set(), set()
+    for ci, ch in enumerate(chunks):
+        js = None
+        for _ in range(2):
+            js = parse_json(ai_text([types.Part.from_bytes(data=ch, mime_type="application/pdf"), EXTRACT_PROMPT], json_mode=True))
+            if isinstance(js, dict): js = js.get("questions")
+            if isinstance(js, list): break
+            time.sleep(2)
+        for o in js if isinstance(js, list) else []:
+            try:
+                txt = str(o["question_text"]).strip(); opts = [str(x).strip() for x in (o.get("options") or [])][:4]
+            except Exception:
+                continue
+            try: qn = int(o.get("q_no"))
+            except Exception: qn = None
+            h = qhash(txt, opts)
+            if len(txt) < 5 or h in seen_h or (qn is not None and qn in seen_n): continue
+            seen_h.add(h); qn is not None and seen_n.add(qn)
+            res.append(dict(q_no=qn, text=txt, options=opts, correct=normc(o.get("answer")), expl=str(o.get("explanation") or "").strip(),
+                            subject=o.get("subject"), topic=o.get("topic"), difficulty=str(o.get("difficulty") or "medium").lower()))
+        if bar: bar.progress((ci + 1) / len(chunks))
+        time.sleep(1)
+    return res
 
 # ═══════════════════════ 6. PDF GENERATOR (A4, Hindi-safe via Hind font + HarfBuzz) ═══════════════════════
 FONT_URLS = {"Hind-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/hind/Hind-Regular.ttf",
@@ -858,16 +969,21 @@ def chips(q, extra=""):
 def q_card(q, head="", extra=""):
     st.markdown(f'<div class="card">{head}<div>{chips(q, extra)}</div><div class="qtext">{e(q["text"])}</div></div>', unsafe_allow_html=True)
 
-def opts_radio(q, key, current=None, ckey="opts", disabled=False, on_change=None, args=()):
+def opts_cards(q, key, current=None, ckey="o", reveal=False, locked=False, on_pick=None, args=()):
     letters = list(LETTERS[:len(q["options"])]) if q["options"] else list(LETTERS)
-    if q["options"]:
-        fmt = lambda L: f"**{L}.**  {md_safe(q['options'][LETTERS.index(L)])}"
-    else:
-        fmt = lambda L: L
-        st.caption(t("no_opts"))
-    with st.container(key=ckey):
-        return st.radio("opts", letters, index=letters.index(current) if current in letters else None, key=key,
-                        format_func=fmt, label_visibility="collapsed", disabled=disabled, on_change=on_change, args=args)
+    if not q["options"]: st.caption(t("no_opts"))
+    css = ""
+    def _pick(L):
+        if not locked and on_pick: on_pick(*args, L)
+    for L in letters:
+        sel, cor = current == L, reveal and q.get("correct") == L
+        bad = reveal and sel and q.get("correct") and L != q["correct"]
+        col = "var(--ok)" if cor else "var(--bad)" if bad else "var(--acc)" if sel else None
+        if col: css += f'.st-key-opt_{ckey}_{L} button{{border-color:{col}!important;background:color-mix(in srgb,{col} 16%,transparent)!important}}'
+        label = f"**{L}.**  {md_safe(q['options'][LETTERS.index(L)])}" if q["options"] else L
+        with st.container(key=f"opt_{ckey}_{L}"):
+            st.button(label, key=f"{key}_{L}", on_click=_pick, args=(L,), use_container_width=True)
+    if css: st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 def ai_explain(q):
     key = f"x{q['id']}_{cfg('ai_lang')}"
@@ -896,6 +1012,17 @@ def fmt_dur(sec):
     sec = int(sec); return f"{sec//60}:{sec%60:02d}"
 
 # ═══════════════════════ 8. HOME ═══════════════════════
+def date_str():
+    d = now_ist(); i = d.weekday()
+    wd = (["सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"] if lang() == "hi"
+          else ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])[i]
+    mo = (["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"] if lang() == "hi"
+          else ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])[d.month - 1]
+    return f"{wd}, {d.day} {mo}"
+
+def qd_pick(qid, L):
+    st.session_state[f"qd_{qid}"] = L
+
 def greeting():
     h = now_ist().hour
     return t("gm") if h < 12 else t("ga") if h < 17 else t("ge") if h < 21 else t("gn")
@@ -910,7 +1037,10 @@ def page_home():
     name = (ss.profile or {}).get("name") or t("student")
     done, goal = ss.days.get(today_s(), 0), max(1, cfg("daily_goal"))
     pct = min(100, int(done * 100 / goal))
-    st.markdown(f'<div class="hero"><div><h2>{e(greeting())}, {e(name)} 👋</h2><p>{e(t("daily_goal"))}: {e(t("solved", n=done, g=goal))}</p></div>'
+    st.markdown(f'<p class="sub" style="margin:0">{e(greeting())}</p><p class="apptitle">{e(t("welcome"))} {e(name)}</p>'
+                f'<p class="sub" style="margin:2px 0 14px">{e(date_str())}</p>', unsafe_allow_html=True)
+    st.markdown(f'<div class="hero"><div style="min-width:0"><span class="pill">{e(t("today_prog"))}</span><span class="pill gold">🔥 {streak()} {e(t("streak"))}</span>'
+                f'<h2>{e(t("solved", n=done, g=goal))}</h2><p>{e(t("tasks_motion"))}</p></div>'
                 f'<div class="ring" style="--p:{pct}"><div>{pct}%</div></div></div>', unsafe_allow_html=True)
     df = meta()
     db_error_box()
@@ -932,7 +1062,8 @@ def page_home():
         q = random.Random(now_ist().date().toordinal()).choice(pool)
         st.markdown(f"##### {t('qotd')}")
         q_card(q)
-        a = opts_radio(q, f"qd_{q['id']}", ckey="opts_qd")
+        a = st.session_state.get(f"qd_{q['id']}")
+        opts_cards(q, f"qdb_{q['id']}", current=a, ckey="qd", reveal=bool(a), locked=bool(a), on_pick=qd_pick, args=(q["id"],))
         if a:
             ok = grade(q, a)
             if ok is None: st.info(t("no_key"))
@@ -991,9 +1122,9 @@ def pr_check(i):
     elif g is False:
         pr["bad"] += 1; st.session_state.wrong.add(q["id"])
 
-def pr_pick(i, key):
+def pr_pick(i, L):
     pr = st.session_state.pr
-    pr["ans"][i] = st.session_state[key]
+    pr["ans"][i] = L
     if cfg("instant"): pr_check(i)
 
 def pr_move(d):
@@ -1031,7 +1162,7 @@ def page_practice():
     q_card(q, head=f'<div class="sub" style="margin-bottom:6px">{t("sec_hint")} {i+1} {t("of")} {len(qs)}</div>')
     key = f"pr_{pr['sid']}_{i}"
     checked = i in pr["checked"]
-    opts_radio(q, key, current=pr["ans"].get(i), ckey="opts_pr", disabled=checked and cfg("instant"), on_change=pr_pick, args=(i, key))
+    opts_cards(q, key, current=pr["ans"].get(i), ckey="pr", reveal=checked, locked=checked, on_pick=pr_pick, args=(i,))
     if not cfg("instant") and not checked and pr["ans"].get(i):
         st.button(t("check"), type="primary", on_click=pr_check, args=(i,), key=f"chk{i}")
     if checked:
@@ -1072,8 +1203,8 @@ def mk_go(i):
     m["qt"][m["cur"]] = m["qt"].get(m["cur"], 0) + now - m["qstart"]
     m["qstart"] = now; m["cur"] = max(0, min(len(m["qs"]) - 1, i)); m["visited"].add(m["cur"]); m["confirm"] = False
 
-def mk_pick(i, key):
-    m = st.session_state.mock; m["ans"][i] = st.session_state[key]
+def mk_pick(i, L):
+    m = st.session_state.mock; m["ans"][i] = L
 
 def mk_save_next(i):
     st.session_state.mock["mark"].discard(i); mk_go(i + 1)
@@ -1081,8 +1212,8 @@ def mk_save_next(i):
 def mk_mark_next(i):
     st.session_state.mock["mark"].add(i); mk_go(i + 1)
 
-def mk_clear(i, key):
-    st.session_state.mock["ans"].pop(i, None); st.session_state.pop(key, None)
+def mk_clear(i):
+    st.session_state.mock["ans"].pop(i, None)
 
 def mk_status(m, i):
     a, mk = i in m["ans"], i in m["mark"]
@@ -1156,13 +1287,13 @@ def mock_run(m):
     q_card(q, head=f'<div class="sub" style="margin-bottom:6px">Q {i+1} / {n}</div>',
            extra=f'<span class="chip g">+{m["pos"]}</span><span class="chip r">−{m["neg"]}</span>' + ('<span class="chip o">⚑</span>' if i in m["mark"] else ""))
     key = f"mk_{m['id']}_{i}"
-    opts_radio(q, key, current=m["ans"].get(i), ckey="opts_mk", on_change=mk_pick, args=(i, key))
+    opts_cards(q, key, current=m["ans"].get(i), ckey="mk", on_pick=mk_pick, args=(i,))
     c1, c2 = st.columns(2)
     c1.button(t("save_next"), type="primary", use_container_width=True, on_click=mk_save_next, args=(i,), key="mks")
     c2.button("⚑ " + t("mark_next"), use_container_width=True, on_click=mk_mark_next, args=(i,), key="mkm")
     c3, c4, c5 = st.columns(3)
     c3.button("← " + t("prev"), disabled=i == 0, use_container_width=True, on_click=mk_go, args=(i - 1,), key="mkp")
-    c4.button(t("clear"), use_container_width=True, on_click=mk_clear, args=(i, key), key="mkc")
+    c4.button(t("clear"), use_container_width=True, on_click=mk_clear, args=(i,), key="mkc")
     c5.button("→ " + t("next"), disabled=i >= n - 1, use_container_width=True, on_click=mk_go, args=(i + 1,), key="mkn")
     # palette
     cols_css = {0: "#8E8E93", 1: "#FF453A", 2: "#30D158", 3: "#BF5AF2", 4: "#30D158"}
@@ -1313,8 +1444,8 @@ def gen_save(qs):
     except Exception as ex:
         st.session_state.db_err = f"{type(ex).__name__}: {ex}"; return 0
 
-def gen_pick(i, key):
-    st.session_state.gen["ans"][i] = st.session_state[key]
+def gen_pick(i, L):
+    st.session_state.gen["ans"][i] = L
 
 def page_create():
     ss = st.session_state
@@ -1355,7 +1486,8 @@ def page_create():
     for i, q in enumerate(qs):
         q_card(q, head=f'<div class="sub" style="margin-bottom:6px">Q {i+1}</div>')
         key = f"g{g['gid']}_{i}"
-        a = opts_radio(q, key, current=g["ans"].get(i), ckey=f"opts_g{i}", on_change=gen_pick, args=(i, key))
+        a = g["ans"].get(i)
+        opts_cards(q, key, current=a, ckey=f"g{i}", reveal=bool(a), locked=bool(a), on_pick=gen_pick, args=(i,))
         if a:
             good = a == q["correct"]
             st.markdown(f'<div class="banner {"ok" if good else "bad"}">{t("correct") if good else t("wrong") + " · " + t("right_ans") + ": " + q["correct"]}</div>', unsafe_allow_html=True)
@@ -1524,158 +1656,17 @@ def admin_ingest():
     c1, c2 = st.columns(2)
     exam = c1.text_input(t("exam"), "RRB JE", key="ing_exam")
     year = c2.number_input(t("year"), 2005, 2035, now_ist().year, key="ing_year")
+    method = st.radio(t("method"), ["ai", "fast"], horizontal=True, key="ing_method", format_func=lambda k: t("m_" + k))
     auto = st.checkbox(t("auto_cls"), True, key="ing_auto"); emb = st.checkbox(t("embed_now"), True, key="ing_emb")
+    mode = st.radio(t("parse_mode"), ["ai", "text"], horizontal=True, key="ing_mode", format_func=lambda k: t("pm_" + k))
     if files and st.button(t("parse"), use_container_width=True, key="ing_parse"):
         keys = parse_answer_key(read_key_file(keyf)) if keyf else {}
-        rows = []
-        with st.spinner("PDF…"):
-            for f in files:
-                for q in parse_questions(extract_pages(f)):
-                    ans = q["correct"] or keys.get(q["q_no"])
-                    sub, top = classify(q["text"]) if auto else ("General", "General")
-                    o = q["options"] + [""] * (4 - len(q["options"]))
-                    rows.append(dict(use=True, q_no=q["q_no"], shift_name=f.name.rsplit(".", 1)[0], subject=sub, topic=top, difficulty="medium",
-                                     question_text=q["text"], A=o[0], B=o[1], C=o[2], D=o[3], correct_option=ans, explanation=q["expl"]))
-        ss.ing_df = pd.DataFrame(rows)
-    df = ss.get("ing_df")
-    if df is not None and len(df):
-        st.success(t("parsed_n", n=len(df)))
-        stat_grid([(int(df["correct_option"].notna().sum()), t("ans_letter")), (int((df["A"] != "").sum()), t("opt")), (len(df), t("q_text"))])
-        ed = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="ing_ed", column_config={
-            "use": st.column_config.CheckboxColumn("✓", width="small"),
-            "correct_option": st.column_config.SelectboxColumn(t("ans_letter"), options=list(LETTERS), width="small"),
-            "difficulty": st.column_config.SelectboxColumn(t("difficulty"), options=["easy", "medium", "hard"]),
-            "question_text": st.column_config.TextColumn(t("q_text"), width="large")})
-        if st.button("💾 " + t("save_db"), type="primary", use_container_width=True, key="ing_save"):
-            n = ingest_save(ed, exam, year, emb)
-            st.balloons(); st.success(t("inserted", n=n)); ss.ing_df = None
-    elif df is not None:
-        st.warning("0 questions detected — PDF scanned/image हो सकती है, या फ़ॉर्मेट अलग है। एक sample PDF भेजें ताकि parser tune हो सके।")
-
-def admin_manage():
-    df = meta(); db_error_box()
-    st.metric(t("total_q"), len(df))
-    if len(df):
-        st.dataframe(df.groupby(["subject", "shift_name"]).size().rename("n").reset_index(), use_container_width=True)
-        st.markdown(f"##### 🛑 {t('danger')}")
-        sh = st.selectbox(t("del_by"), uniq(df, "shift_name"), key="del_sh")
-        conf = st.text_input(t("type_del"), key="del_conf")
-        if st.button("🗑 " + t("del_by"), disabled=conf != "DELETE", key="del_go"):
-            sb().table("rrb_questions").delete().eq("shift_name", sh).execute(); st.cache_data.clear(); st.success(t("deleted")); st.rerun()
-    rows = get_questions(limit=5000)
-    if rows:
-        d = pd.DataFrame([{**q, "options": " | ".join(q["options"])} for q in rows])
-        st.download_button("⬇ CSV", d.to_csv(index=False).encode("utf-8-sig"), "all_questions.csv", "text/csv")
-
-def admin_ai():
-    try:
-        pend = sb().table("rrb_questions").select("id", count="exact").is_("embedding", "null").execute().count or 0
-    except Exception as ex:
-        st.error(str(ex)); return
-    st.info(t("pending_emb", n=pend))
-    if st.button(t("run_emb"), disabled=pend == 0, use_container_width=True, key="emb_go"):
-        rows = sb().table("rrb_questions").select("id,question_text,options").is_("embedding", "null").limit(40).execute().data or []
-        bar = st.progress(0.0)
-        for i in range(0, len(rows), 15):
-            ch = rows[i:i + 15]
-            try:
-                vecs = embed_texts([r["question_text"] + " " + " ".join(parse_opts(r["options"])) for r in ch])
-                for r, v in zip(ch, vecs): sb().table("rrb_questions").update({"embedding": v}).eq("id", r["id"]).execute()
-            except Exception as ex:
-                st.error(str(ex)); break
-            bar.progress(min(1.0, (i + 15) / len(rows))); time.sleep(0.4)
-        st.rerun()
-    if st.button(t("run_cls"), use_container_width=True, key="cls_go"):
-        rows = sb().table("rrb_questions").select(COLS).is_("explanation", "null").limit(15).execute().data or []
-        items = [norm_q(r) for r in rows]
-        p = ("For each RRB/SSC JE exam question return a JSON array of objects {id, subject, topic, difficulty(easy|medium|hard), explanation(max 60 words, "
-             f"{lang_rule()}" + ")}. Use these subject names where they fit: Civil Engineering, Electrical Engineering, Mechanical Engineering, Mathematics, "
-             "Reasoning, General Science, General Awareness, Computer. Do NOT invent an answer; base the explanation on the stored correct option if present.\n" +
-             json.dumps([dict(id=q["id"], q=q["text"], opts=q["options"], correct=q["correct"]) for q in items], ensure_ascii=False))
-        js = parse_json(ai_text(p, json_mode=True)); n = 0
-        for o in js if isinstance(js, list) else []:
-            try:
-                sb().table("rrb_questions").update(dict(subject=o["subject"], topic=o["topic"], difficulty=o.get("difficulty", "medium"),
-                                                    explanation=o.get("explanation"))).eq("id", o["id"]).execute(); n += 1
-            except Exception: pass
-        st.cache_data.clear(); st.success(f"{n} ✓")
-
-def admin_add():
-    with st.form("addq", clear_on_submit=True):
-        tx = st.text_area(t("q_text"))
-        cs = st.columns(2); o = [cs[i % 2].text_input(f"{t('opt')} {LETTERS[i]}") for i in range(4)]
-        c1, c2, c3 = st.columns(3)
-        ans = c1.selectbox(t("ans_letter"), list(LETTERS)); sub = c2.text_input(t("subject"), "Civil Engineering"); top = c3.text_input(t("topic"), "General")
-        ex = st.text_area(t("explain"))
-        if st.form_submit_button(t("save"), type="primary") and tx.strip():
-            opts = [x for x in o if x.strip()]
-            sb().table("rrb_questions").upsert(dict(q_hash=qhash(tx, opts), question_text=tx.strip(), options=opts, correct_option=ans, subject=sub, topic=top,
-                                                 explanation=ex or None, exam="RRB JE", shift_name="manual"), on_conflict="q_hash", ignore_duplicates=True).execute()
-            st.cache_data.clear(); st.success(t("saved"))
-
-def admin_diag():
-    import streamlit
-    st.write(f"Streamlit **{streamlit.__version__}** · theme API: **{theme_type()}**")
-    st.write({"SUPABASE_URL": bool(SB_URL), "SUPABASE_KEY": bool(SB_KEY), "GEMINI_API_KEY": bool(G_KEY), "ADMIN_PIN": bool(secret("ADMIN_PIN"))})
-    st.write("Models:", _models(), "· working:", st.session_state.get("good_model"))
-    a, b = st.columns(2)
-    if a.button(t("test_db"), use_container_width=True, key="d_db"):
-        try: st.success(f"OK · rows: {sb().table('rrb_questions').select('id', count='exact').limit(1).execute().count}")
-        except Exception as ex: st.error(f"{type(ex).__name__}: {ex}")
-    if b.button(t("test_ai"), use_container_width=True, key="d_ai"):
-        r = ai_text("Reply with the single word OK.")
-        st.success(f"OK · {r}") if r else st.error(st.session_state.ai_err)
-    st.write("PDF fonts:", ensure_fonts() or "❌ not available", "· fpdf2:", HAVE_FPDF)
-    if st.session_state.ai_err: st.code(st.session_state.ai_err[:600])
-
-def tab_admin():
-    ss = st.session_state; pin = secret("ADMIN_PIN")
-    if pin and not ss.admin_ok:
-        p = st.text_input(t("admin_pin"), type="password", key="adm_pin")
-        if st.button(t("unlock"), key="adm_go"):
-            if str(p) == str(pin): ss.admin_ok = True; st.rerun()
-            else: st.error(t("bad_pin"))
-        return
-    if not pin: st.warning(t("no_pin_set"))
-    tabs = st.tabs([t("ingest"), t("manage"), t("ai_tools"), t("add_one"), t("diag")])
-    with tabs[0]: admin_ingest()
-    with tabs[1]: admin_manage()
-    with tabs[2]: admin_ai()
-    with tabs[3]: admin_add()
-    with tabs[4]: admin_diag()
-
-def page_more():
-    page_head(t("more"), "PYQ Master")
-    tabs = st.tabs([t("profile"), t("settings"), t("progress"), t("admin")])
-    with tabs[0]: tab_profile()
-    with tabs[1]: tab_settings()
-    with tabs[2]: tab_progress()
-    with tabs[3]: tab_admin()
-
-# ═══════════════════════ 14. APP SHELL ═══════════════════════
-PAGE_FN = dict(home=page_home, practice=page_practice, mock=page_mock, create=page_create, library=page_library, more=page_more)
-
-def set_ui_lang():
-    st.session_state.cfg["ui_lang"] = st.session_state["w_ui_lang_q"]
-
-def main():
-    ss = st.session_state
-    if not (SB_URL and SB_KEY and G_KEY):
-        st.error(S["secrets_missing"][1] + "\n\n" + S["secrets_missing"][0]); st.stop()
-    if not ss.profile and not ss.get("_qp_done"):
-        ss["_qp_done"] = True
-        try:
-            u = st.query_params.get("u")
-            if u: load_profile(u)
-        except Exception: pass
-    inject_css()
-    ss["w_ui_lang_q"] = cfg("ui_lang")
-    with st.container(key="langbar"):
-        st.radio("lang", ["hi", "en", "hn"], horizontal=True, key="w_ui_lang_q", on_change=set_ui_lang, label_visibility="collapsed",
-                 format_func=lambda k: {"hi": "हिं", "en": "EN", "hn": "Hn"}[k])
-    if ss.nav not in PAGES: ss.nav = "home"
-    with st.container(key="bottomnav"):
-        st.radio("nav", PAGES, horizontal=True, key="nav", format_func=lambda k: t(k), label_visibility="collapsed")
-    PAGE_FN[ss.nav]()
-
-main()
+        rows, miss_all, bar = [], [], st.progress(0.0)
+        for fi, f in enumerate(files):
+            if mode == "ai":
+                qs, k2, miss = parse_pdf_vision(f, lambda fr, fi=fi: bar.progress(min(1.0, (fi + fr) / len(files))))
+                kf = {**k2, **keys}
+            else:
+                qs, kf, miss = parse_questions(extract_pages(f)), keys, []
+            if miss: miss_all.append((f.name, miss))
+            for q i
